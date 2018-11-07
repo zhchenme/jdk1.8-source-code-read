@@ -3,6 +3,9 @@
  * 1.Arrays.copyof()：
  *      https://juejin.im/post/5aa32725f265da2373140df3
  *      https://segmentfault.com/a/1190000009922279
+ * 2.modCount 作用：记录被修改的数次，保证在迭代时的正确性
+ * 3.ArrayList 可添加 null 值，源码中 null 与非 null 采取两种方式处理（比如遍历）
+ * 4.subList
  */
 
 package java.util;
@@ -877,12 +880,13 @@ public class ArrayList<E> extends AbstractList<E>
     }
 
     /**
-     * Returns a view of the portion of this list between the specified
-     * {@code fromIndex}, inclusive, and {@code toIndex}, exclusive.  (If
-     * {@code fromIndex} and {@code toIndex} are equal, the returned list is
-     * empty.)  The returned list is backed by this list, so non-structural
-     * changes in the returned list are reflected in this list, and vice-versa.
-     * The returned list supports all of the optional list operations.
+     * 返回列表中部分数据试图
+     *
+     * 如果对原 list 调用 subList(int fromIndex, int toIndex) 方法：
+     * 1.原 list 可以进行修改与查询操作，但是修改后 subList 中对应的元素值也会对应改变（index 不超过 subList 的大小），如果对原 list
+     * 执行删除与添加时会报 ConcurrentModificationException 并发修改异常
+     * 2.如果对 subList 执行增删改操作会对原 list 执行同样的操作
+     *
      *
      * <p>This method eliminates the need for explicit range operations (of
      * the sort that commonly exist for arrays).  Any operation that expects
@@ -910,6 +914,13 @@ public class ArrayList<E> extends AbstractList<E>
         return new SubList(this, 0, fromIndex, toIndex);
     }
 
+    /**
+     * 角标检查
+     *
+     * @param fromIndex
+     * @param toIndex
+     * @param size
+     */
     static void subListRangeCheck(int fromIndex, int toIndex, int size) {
         if (fromIndex < 0)
             throw new IndexOutOfBoundsException("fromIndex = " + fromIndex);

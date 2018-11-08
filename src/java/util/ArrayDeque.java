@@ -1,35 +1,14 @@
 /*
- * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+ * 总结：
+ * 1.有符号位移与无符号位移
+ *      以 -1 为例
+ *      源码：     0000 0000 0000 0000 0000 0000 0000 0001
+ *      反码：     1111 1111 1111 1111 1111 1111 1111 1110
+ *      补码：     1111 1111 1111 1111 1111 1111 1111 1111   （在反码基础上 +1）
+ *      a>>2：     1111 1111 1111 1111 1111 1111 1111 1111  （有符号右移两位，高位补 1）
+ *      a>>>2：    0011 1111 1111 1111 1111 1111 1111 1111  （无符号右移两位，高位补 0）
  *
  *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- */
-
-/*
- *
- *
- *
- *
- *
- * Written by Josh Bloch of Google Inc. and released to the public domain,
- * as explained at http://creativecommons.org/publicdomain/zero/1.0/.
  */
 
 package java.util;
@@ -111,22 +90,24 @@ public class ArrayDeque<E> extends AbstractCollection<E>
     transient int tail;
 
     /**
-     * The minimum capacity that we'll use for a newly created deque.
-     * Must be a power of 2.
+     * 最小初始化容量
      */
     private static final int MIN_INITIAL_CAPACITY = 8;
 
     // ******  Array allocation and resizing utilities ******
 
     /**
-     * Allocates empty array to hold the given number of elements.
+     * 通过位运算初始化容量大小
      *
      * @param numElements  the number of elements to hold
      */
     private void allocateElements(int numElements) {
         int initialCapacity = MIN_INITIAL_CAPACITY;
-        // Find the best power of two to hold elements.
-        // Tests "<=" because arrays aren't kept full.
+        // 当自定义容量大于等于 8 时执行下面的流程，小于 8 时默认为容量 8
+        /**
+         * 当 numElements = 9 时，最终的 initialCapacity 为 16
+         * 当 numElements = 17 时，最终的 initialCapacity 为 32
+         */
         if (numElements >= initialCapacity) {
             initialCapacity = numElements;
             initialCapacity |= (initialCapacity >>>  1);
@@ -183,6 +164,7 @@ public class ArrayDeque<E> extends AbstractCollection<E>
     /**
      * Constructs an empty array deque with an initial capacity
      * sufficient to hold 16 elements.
+     * 默认初始化大小为 16
      */
     public ArrayDeque() {
         elements = new Object[16];

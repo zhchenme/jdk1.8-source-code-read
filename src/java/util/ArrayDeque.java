@@ -103,8 +103,9 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      */
     private void allocateElements(int numElements) {
         int initialCapacity = MIN_INITIAL_CAPACITY;
-        // 当自定义容量大于等于 8 时执行下面的流程，小于 8 时默认为容量 8
         /**
+         * 当自定义容量大于等于 8 时执行下面的流程，小于 8 时默认为容量 8
+         *
          * 当 numElements = 9 时，最终的 initialCapacity 为 16
          * 当 numElements = 17 时，最终的 initialCapacity 为 32
          */
@@ -128,15 +129,19 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      * when head and tail have wrapped around to become equal.
      */
     private void doubleCapacity() {
+        // 当尾节点指向头节点的时候才继续执行
         assert head == tail;
         int p = head;
         int n = elements.length;
         int r = n - p; // number of elements to the right of p
+        // 将数组容量扩大 2 倍
         int newCapacity = n << 1;
         if (newCapacity < 0)
             throw new IllegalStateException("Sorry, deque too big");
         Object[] a = new Object[newCapacity];
+        // 将原数组中的数据拷贝到新数组中
         System.arraycopy(elements, p, a, 0, r);
+        //
         System.arraycopy(elements, 0, a, r, p);
         elements = a;
         head = 0;
@@ -151,15 +156,15 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      * @return its argument
      */
     private <T> T[] copyElements(T[] a) {
-        if (head < tail) {
-            System.arraycopy(elements, head, a, 0, size());
-        } else if (head > tail) {
-            int headPortionLen = elements.length - head;
-            System.arraycopy(elements, head, a, 0, headPortionLen);
-            System.arraycopy(elements, 0, a, headPortionLen, tail);
-        }
-        return a;
+    if (head < tail) {
+        System.arraycopy(elements, head, a, 0, size());
+    } else if (head > tail) {
+        int headPortionLen = elements.length - head;
+        System.arraycopy(elements, head, a, 0, headPortionLen);
+        System.arraycopy(elements, 0, a, headPortionLen, tail);
     }
+    return a;
+}
 
     /**
      * Constructs an empty array deque with an initial capacity
@@ -202,12 +207,20 @@ public class ArrayDeque<E> extends AbstractCollection<E>
     /**
      * Inserts the specified element at the front of this deque.
      *
+     * 在头节点插入元素
      * @param e the element to add
      * @throws NullPointerException if the specified element is null
      */
     public void addFirst(E e) {
         if (e == null)
             throw new NullPointerException();
+        /**
+         *  (head - 1) & (elements.length - 1) 相当于取余
+         *
+         *  如果 head = 0，相当于 -1 & (elements.length - 1)，
+         *  -1 的二进表示：0000 0001 -> 1111 1110 + 1 -> 1111 1111
+         *  & 出来的结果就是 elements.length - 1
+         */
         elements[head = (head - 1) & (elements.length - 1)] = e;
         if (head == tail)
             doubleCapacity();
@@ -222,6 +235,7 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      * @throws NullPointerException if the specified element is null
      */
     public void addLast(E e) {
+        // 插入的元素不允许为  null
         if (e == null)
             throw new NullPointerException();
         elements[tail] = e;
@@ -386,6 +400,7 @@ public class ArrayDeque<E> extends AbstractCollection<E>
     }
 
     // *** Queue methods ***
+    /* -------------------------------------------- 队列相关方法 ------------------------------------------- */
 
     /**
      * Inserts the specified element at the end of this deque.

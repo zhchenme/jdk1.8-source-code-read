@@ -152,19 +152,24 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      * Copies the elements from our element array into the specified array,
      * in order (from first to last element in the deque).  It is assumed
      * that the array is large enough to hold all elements in the deque.
-     *
+     * 
+     * 将双端队列中的元素拷贝到指定数组中
+     * 
      * @return its argument
      */
     private <T> T[] copyElements(T[] a) {
-    if (head < tail) {
-        System.arraycopy(elements, head, a, 0, size());
-    } else if (head > tail) {
-        int headPortionLen = elements.length - head;
-        System.arraycopy(elements, head, a, 0, headPortionLen);
-        System.arraycopy(elements, 0, a, headPortionLen, tail);
+        /**
+         * 判断 tail 是否大于 head，如果是只需要拷贝一次，否则需要两次数据拷贝
+         */
+        if (head < tail) {
+            System.arraycopy(elements, head, a, 0, size());
+        } else if (head > tail) {
+            int headPortionLen = elements.length - head;
+            System.arraycopy(elements, head, a, 0, headPortionLen);
+            System.arraycopy(elements, 0, a, headPortionLen, tail);
+        }
+        return a;
     }
-    return a;
-}
 
     /**
      * Constructs an empty array deque with an initial capacity
@@ -392,7 +397,7 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      * Returns {@code true} if this deque contained the specified element
      * (or equivalently, if this deque changed as a result of the call).
      * 
-     * 移除指定第一次出现的元素值
+     * 移除指定第一次出现的元素值，返回 true/false
      * 
      * @param o element to be removed from this deque, if present
      * @return {@code true} if the deque contained the specified element
@@ -408,10 +413,10 @@ public class ArrayDeque<E> extends AbstractCollection<E>
         while ( (x = elements[i]) != null) {
             // 当双端队列中存在该元素时删除该元素，并返回 true
             if (o.equals(x)) {
-                // TODO
                 delete(i);
                 return true;
             }
+            // 重置 i
             i = (i + 1) & mask;
         }
         return false;
@@ -426,7 +431,7 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      * Returns {@code true} if this deque contained the specified element
      * (or equivalently, if this deque changed as a result of the call).
      *
-     * 移除指定最后一次出现的元素值
+     * 移除指定最后一次出现的元素值，true/false
      * 
      * @param o element to be removed from this deque, if present
      * @return {@code true} if the deque contained the specified element
@@ -457,7 +462,9 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      * Inserts the specified element at the end of this deque.
      *
      * <p>This method is equivalent to {@link #addLast}.
-     *
+     * 
+     * 在尾部追加元素并返回 true
+     * 
      * @param e the element to add
      * @return {@code true} (as specified by {@link Collection#add})
      * @throws NullPointerException if the specified element is null
@@ -471,7 +478,9 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      * Inserts the specified element at the end of this deque.
      *
      * <p>This method is equivalent to {@link #offerLast}.
-     *
+     * 
+     * 在尾部追加元素并返回 true
+     * 
      * @param e the element to add
      * @return {@code true} (as specified by {@link Queue#offer})
      * @throws NullPointerException if the specified element is null
@@ -486,6 +495,8 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      * This method differs from {@link #poll poll} only in that it throws an
      * exception if this deque is empty.
      *
+     * 移除头结点元素，当头结点元素为 null 时，会抛出异常
+     * 
      * <p>This method is equivalent to {@link #removeFirst}.
      *
      * @return the head of the queue represented by this deque
@@ -500,6 +511,8 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      * (in other words, the first element of this deque), or returns
      * {@code null} if this deque is empty.
      *
+     * 移除头结点元素，当头结点元素为 null 时返回 null
+     * 
      * <p>This method is equivalent to {@link #pollFirst}.
      *
      * @return the head of the queue represented by this deque, or
@@ -514,6 +527,8 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      * this deque.  This method differs from {@link #peek peek} only in
      * that it throws an exception if this deque is empty.
      *
+     * 获取头结点元素，为 null 时抛出 NoSuchElementException
+     * 
      * <p>This method is equivalent to {@link #getFirst}.
      *
      * @return the head of the queue represented by this deque
@@ -527,6 +542,8 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      * Retrieves, but does not remove, the head of the queue represented by
      * this deque, or returns {@code null} if this deque is empty.
      *
+     * 获取头结点元素，为 null 时返回 null
+     * 
      * <p>This method is equivalent to {@link #peekFirst}.
      *
      * @return the head of the queue represented by this deque, or
@@ -542,6 +559,8 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      * Pushes an element onto the stack represented by this deque.  In other
      * words, inserts the element at the front of this deque.
      *
+     * 在头部插入元素
+     * 
      * <p>This method is equivalent to {@link #addFirst}.
      *
      * @param e the element to push
@@ -557,6 +576,8 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      *
      * <p>This method is equivalent to {@link #removeFirst()}.
      *
+     * 移除头结点元素，为 null 时抛出异常
+     * 
      * @return the element at the front of this deque (which is the top
      *         of the stack represented by this deque)
      * @throws NoSuchElementException {@inheritDoc}
@@ -565,11 +586,20 @@ public class ArrayDeque<E> extends AbstractCollection<E>
         return removeFirst();
     }
 
+    /**
+     * 头尾节点断言
+     * 1.尾节点元素判 null
+     * 2.判断头尾是否在同一位置
+     * 3.头结点前的元素判 null
+     */
     private void checkInvariants() {
+        // 尾节点的元素必须为 null，因为在尾节点追加元素时，重置了 tail = tail + 1
         assert elements[tail] == null;
         assert head == tail ? elements[head] == null :
+                // 头尾节点对应的元素不为 null，(tail - 1) & (elements.length - 1) 位置才是 tail 对应的元素
             (elements[head] != null &&
              elements[(tail - 1) & (elements.length - 1)] != null);
+        // 头结点前一个元素必须为 null
         assert elements[(head - 1) & (elements.length - 1)] == null;
     }
 
@@ -577,28 +607,42 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      * Removes the element at the specified position in the elements array,
      * adjusting head and tail as necessary.  This can result in motion of
      * elements backwards or forwards in the array.
-     *
+     * 
+     * 移除指定位置的元素，并调整头结点与尾节点
+     * 
      * <p>This method is called delete rather than remove to emphasize
      * that its semantics differ from those of {@link List#remove(int)}.
      *
      * @return true if elements moved backwards
      */
     private boolean delete(int i) {
+        // 头尾节点判断
         checkInvariants();
         final Object[] elements = this.elements;
         final int mask = elements.length - 1;
         final int h = head;
         final int t = tail;
+        // 距离头结点的大小
         final int front = (i - h) & mask;
+        // 距离尾节点的大小
         final int back  = (t - i) & mask;
 
         // Invariant: head <= i < tail mod circularity
+        // index 检查
         if (front >= ((t - h) & mask))
             throw new ConcurrentModificationException();
 
-        // Optimize for least element motion
+        /**
+         * 1.front < back 时，从头结点进行操作，减少元素拷贝的次数
+         * 2.front > back 时，从尾结点进行操作
+         */
         if (front < back) {
+            /**
+             * 1.头结点在尾节点前
+             * 2.头结点在尾节点后，需要两次元素拷贝才能删除当前 i 位置元素
+             */
             if (h <= i) {
+                // 将所有元素向后移动一个位置
                 System.arraycopy(elements, h, elements, h + 1, front);
             } else { // Wrap around
                 System.arraycopy(elements, 0, elements, 1, i);
@@ -606,11 +650,18 @@ public class ArrayDeque<E> extends AbstractCollection<E>
                 System.arraycopy(elements, h, elements, h + 1, mask - h);
             }
             elements[h] = null;
+            // 重置 head
             head = (h + 1) & mask;
+            // TODO 为什么返回 false？
             return false;
         } else {
+            /**
+             * 原理同上
+             */
             if (i < t) { // Copy the null tail as well
+                // 将所有元素向前移动一个位置
                 System.arraycopy(elements, i + 1, elements, i, back);
+                // 重置 tail
                 tail = t - 1;
             } else { // Wrap around
                 System.arraycopy(elements, i + 1, elements, i, mask - i);
@@ -627,6 +678,8 @@ public class ArrayDeque<E> extends AbstractCollection<E>
     /**
      * Returns the number of elements in this deque.
      *
+     * 返回双端队列中的元素数量
+     * 
      * @return the number of elements in this deque
      */
     public int size() {
@@ -636,6 +689,8 @@ public class ArrayDeque<E> extends AbstractCollection<E>
     /**
      * Returns {@code true} if this deque contains no elements.
      *
+     * 判断双端队列中是否有元素
+     * 
      * @return {@code true} if this deque contains no elements
      */
     public boolean isEmpty() {
@@ -761,6 +816,8 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      * More formally, returns {@code true} if and only if this deque contains
      * at least one element {@code e} such that {@code o.equals(e)}.
      *
+     * 判断双端队列中是否包含某个指定元素
+     * 
      * @param o object to be checked for containment in this deque
      * @return {@code true} if this deque contains the specified element
      */
@@ -770,6 +827,7 @@ public class ArrayDeque<E> extends AbstractCollection<E>
         int mask = elements.length - 1;
         int i = head;
         Object x;
+        // 从头结点开始遍历
         while ( (x = elements[i]) != null) {
             if (o.equals(x))
                 return true;
@@ -786,26 +844,33 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      * Returns {@code true} if this deque contained the specified element
      * (or equivalently, if this deque changed as a result of the call).
      *
+     * 移除某个指定的元素，返回 true/false
+     * 
      * <p>This method is equivalent to {@link #removeFirstOccurrence(Object)}.
      *
      * @param o element to be removed from this deque, if present
      * @return {@code true} if this deque contained the specified element
      */
     public boolean remove(Object o) {
+        // o 为 null 时返回 false
         return removeFirstOccurrence(o);
     }
 
     /**
      * Removes all of the elements from this deque.
      * The deque will be empty after this call returns.
+     * 
+     * 移除所有元素
      */
     public void clear() {
         int h = head;
         int t = tail;
         if (h != t) { // clear all cells
+            // 头尾置零，头尾相等时表示没有任何元素
             head = tail = 0;
             int i = h;
             int mask = elements.length - 1;
+            // 从头部开始将所有元素值置 null
             do {
                 elements[i] = null;
                 i = (i + 1) & mask;
@@ -824,6 +889,8 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      * <p>This method acts as bridge between array-based and collection-based
      * APIs.
      *
+     * 转数组，用一个新数组接收元素值，新数组大小等于双端队列的大小
+     * 
      * @return an array containing all of the elements in this deque
      */
     public Object[] toArray() {
@@ -838,25 +905,8 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      * is allocated with the runtime type of the specified array and the
      * size of this deque.
      *
-     * <p>If this deque fits in the specified array with room to spare
-     * (i.e., the array has more elements than this deque), the element in
-     * the array immediately following the end of the deque is set to
-     * {@code null}.
-     *
-     * <p>Like the {@link #toArray()} method, this method acts as bridge between
-     * array-based and collection-based APIs.  Further, this method allows
-     * precise control over the runtime type of the output array, and may,
-     * under certain circumstances, be used to save allocation costs.
-     *
-     * <p>Suppose {@code x} is a deque known to contain only strings.
-     * The following code can be used to dump the deque into a newly
-     * allocated array of {@code String}:
-     *
-     *  <pre> {@code String[] y = x.toArray(new String[0]);}</pre>
-     *
-     * Note that {@code toArray(new Object[0])} is identical in function to
-     * {@code toArray()}.
-     *
+     * 将元素拷贝到指定的数组中去并返回
+     * 
      * @param a the array into which the elements of the deque are to
      *          be stored, if it is big enough; otherwise, a new array of the
      *          same runtime type is allocated for this purpose
@@ -869,10 +919,12 @@ public class ArrayDeque<E> extends AbstractCollection<E>
     @SuppressWarnings("unchecked")
     public <T> T[] toArray(T[] a) {
         int size = size();
+        // 如果指定的数组的容量小于双端队列的容量，使用反射技术重新赋值 a 数组
         if (a.length < size)
             a = (T[])java.lang.reflect.Array.newInstance(
                     a.getClass().getComponentType(), size);
         copyElements(a);
+        // 如果指定的数组的容量大于双端队列的容量，通过置 null 将拷贝的元素与原数组元素隔开
         if (a.length > size)
             a[size] = null;
         return a;

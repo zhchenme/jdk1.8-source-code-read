@@ -133,17 +133,19 @@ public class ArrayDeque<E> extends AbstractCollection<E>
         assert head == tail;
         int p = head;
         int n = elements.length;
+        // 头结点右边元素数量
         int r = n - p; // number of elements to the right of p
         // 将数组容量扩大 2 倍
         int newCapacity = n << 1;
         if (newCapacity < 0)
             throw new IllegalStateException("Sorry, deque too big");
         Object[] a = new Object[newCapacity];
-        // 将原数组中的数据拷贝到新数组中
+        // 将原数组中 head 右边的数据拷贝到新数组中
         System.arraycopy(elements, p, a, 0, r);
-        //
+        //将原数组中 head 左边的元素拷贝到新数组中
         System.arraycopy(elements, 0, a, r, p);
         elements = a;
+        // 重置头尾节点
         head = 0;
         tail = n;
     }

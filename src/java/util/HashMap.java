@@ -1,25 +1,5 @@
 /*
- * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
- * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
+ * 总结：
  *
  */
 
@@ -231,6 +211,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
 
     /**
      * The default initial capacity - MUST be a power of two.
+     *
+     * HashMap 默认初始容量大小
      */
     static final int DEFAULT_INITIAL_CAPACITY = 1 << 4; // aka 16
 
@@ -238,11 +220,15 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * The maximum capacity, used if a higher value is implicitly specified
      * by either of the constructors with arguments.
      * MUST be a power of two <= 1<<30.
+     *
+     * HashMap 最大限制容量
      */
     static final int MAXIMUM_CAPACITY = 1 << 30;
 
     /**
      * The load factor used when none specified in constructor.
+     *
+     * 默认哈希因子大小，扩容时使用
      */
     static final float DEFAULT_LOAD_FACTOR = 0.75f;
 
@@ -253,6 +239,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * than 2 and should be at least 8 to mesh with assumptions in
      * tree removal about conversion back to plain bins upon
      * shrinkage.
+     *
+     * list 转树的临界值
      */
     static final int TREEIFY_THRESHOLD = 8;
 
@@ -260,6 +248,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * The bin count threshold for untreeifying a (split) bin during a
      * resize operation. Should be less than TREEIFY_THRESHOLD, and at
      * most 6 to mesh with shrinkage detection under removal.
+     *
+     * 树转 list 的临界值
      */
     static final int UNTREEIFY_THRESHOLD = 6;
 
@@ -268,17 +258,34 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * (Otherwise the table is resized if too many nodes in a bin.)
      * Should be at least 4 * TREEIFY_THRESHOLD to avoid conflicts
      * between resizing and treeification thresholds.
+     *
+     * 树化时哈希表中最小的限制容量
      */
     static final int MIN_TREEIFY_CAPACITY = 64;
 
     /**
      * Basic hash bin node, used for most entries.  (See below for
      * TreeNode subclass, and in LinkedHashMap for its Entry subclass.)
+     *
+     * 哈希表节点类
      */
     static class Node<K,V> implements Map.Entry<K,V> {
+        /**
+         * key 哈希值
+         */
         final int hash;
+        /**
+         * 键
+         */
         final K key;
+        /**
+         * 值
+         */
         V value;
+        /**
+         * 下一个节点
+         * 注意：没有前一个节点
+         */
         Node<K,V> next;
 
         Node(int hash, K key, V value, Node<K,V> next) {
@@ -293,9 +300,16 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         public final String toString() { return key + "=" + value; }
 
         public final int hashCode() {
+            // key 的哈希值"异或"value 的哈希值
             return Objects.hashCode(key) ^ Objects.hashCode(value);
         }
 
+        /**
+         * 设值，并返回原来的值
+         *
+         * @param newValue
+         * @return
+         */
         public final V setValue(V newValue) {
             V oldValue = value;
             value = newValue;
@@ -373,6 +387,9 @@ public class HashMap<K,V> extends AbstractMap<K,V>
 
     /**
      * Returns a power of two size for the given target capacity.
+     *
+     * 返回 cap 最小的 2 的幂
+     * {@link ArrayDeque} 见 ArrayDeque 中的 allocateElements(int numElements)，同
      */
     static final int tableSizeFor(int cap) {
         int n = cap - 1;
@@ -391,6 +408,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * necessary. When allocated, length is always a power of two.
      * (We also tolerate length zero in some operations to allow
      * bootstrapping mechanics that are currently not needed.)
+     *
+     * 哈希表数组
      */
     transient Node<K,V>[] table;
 
@@ -402,6 +421,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
 
     /**
      * The number of key-value mappings contained in this map.
+     *
+     * 键值对数量
      */
     transient int size;
 
@@ -411,11 +432,16 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * the HashMap or otherwise modify its internal structure (e.g.,
      * rehash).  This field is used to make iterators on Collection-views of
      * the HashMap fail-fast.  (See ConcurrentModificationException).
+     *
+     * 记录 HashMap 被修改的次数
      */
     transient int modCount;
 
     /**
      * The next size value at which to resize (capacity * load factor).
+     *
+     * capacity * load factor
+     * 哈希表容量阈值
      *
      * @serial
      */
@@ -428,6 +454,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /**
      * The load factor for the hash table.
      *
+     * HashMap 加载因子
+     *
      * @serial
      */
     final float loadFactor;
@@ -437,6 +465,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /**
      * Constructs an empty <tt>HashMap</tt> with the specified initial
      * capacity and load factor.
+     *
+     * 自定义默认初始容量与哈希因子的构造函数
      *
      * @param  initialCapacity the initial capacity
      * @param  loadFactor      the load factor
@@ -460,6 +490,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * Constructs an empty <tt>HashMap</tt> with the specified initial
      * capacity and the default load factor (0.75).
      *
+     * 自定义初始容量的构造函数
+     *
      * @param  initialCapacity the initial capacity.
      * @throws IllegalArgumentException if the initial capacity is negative.
      */
@@ -470,6 +502,9 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /**
      * Constructs an empty <tt>HashMap</tt> with the default initial capacity
      * (16) and the default load factor (0.75).
+     *
+     * 无参构造函数，初始化荣来给你默认为 16，哈希因子为 0.75f
+     *
      */
     public HashMap() {
         this.loadFactor = DEFAULT_LOAD_FACTOR; // all other fields defaulted
@@ -492,6 +527,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /**
      * Implements Map.putAll and Map constructor
      *
+     *
+     *
      * @param m the map
      * @param evict false when initially constructing this map, else
      * true (relayed to method afterNodeInsertion).
@@ -500,14 +537,18 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         int s = m.size();
         if (s > 0) {
             if (table == null) { // pre-size
+                // todo 为什么要怎么设计？
                 float ft = ((float)s / loadFactor) + 1.0F;
                 int t = ((ft < (float)MAXIMUM_CAPACITY) ?
                          (int)ft : MAXIMUM_CAPACITY);
+                // t > threshold 时重置阈值
                 if (t > threshold)
                     threshold = tableSizeFor(t);
             }
+            // 如果当前 HashMap 装不下指定 Map 中的元素时，进行扩容
             else if (s > threshold)
                 resize();
+            // 遍历指定的 Map，将所有元素添加到当前 Map 中
             for (Map.Entry<? extends K, ? extends V> e : m.entrySet()) {
                 K key = e.getKey();
                 V value = e.getValue();

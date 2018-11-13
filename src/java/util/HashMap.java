@@ -527,7 +527,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /**
      * Implements Map.putAll and Map constructor
      *
-     *
+     * 向当前 Map 添加指定 map 中的所有元素
      *
      * @param m the map
      * @param evict false when initially constructing this map, else
@@ -655,43 +655,64 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /**
      * Implements Map.put and related methods
      *
+     * 向 map 中添加键值对
+     *
      * @param hash hash for key
      * @param key the key
      * @param value the value to put
-     * @param onlyIfAbsent if true, don't change existing value
-     * @param evict if false, the table is in creation mode.
+     * @param onlyIfAbsent if true, don't change existing value 为 true 时不改变已经存在的值
+     * @param evict if false, the table is in creation mode. 为 false 时表示哈希表正在创建
      * @return previous value, or null if none
      */
     final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
                    boolean evict) {
+        /**
+         * tab：哈希表数组
+         * p：槽中的节点
+         * n：哈希表数组大小
+         * i：下标（槽位置）
+         */
         Node<K,V>[] tab; Node<K,V> p; int n, i;
+        // 当哈希表数组为 null 或者长度为 0 时，初始化哈希表数组
         if ((tab = table) == null || (n = tab.length) == 0)
             n = (tab = resize()).length;
+        // 没有出现哈希碰撞直接新节点插入对应的槽内
         if ((p = tab[i = (n - 1) & hash]) == null)
             tab[i] = newNode(hash, key, value, null);
+        // 哈希碰撞
         else {
             Node<K,V> e; K k;
+            // 如果 key 已经存在，记录存在的节点
+            // todo 为什么多了一步头节点 key "存在"判断？
             if (p.hash == hash &&
                 ((k = p.key) == key || (key != null && key.equals(k))))
                 e = p;
+            // 如果是树节点，走树节点插入流程
             else if (p instanceof TreeNode)
                 e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
+            // 链表处理流程
             else {
                 for (int binCount = 0; ; ++binCount) {
+                    // 在链表尾部插入新节点，注意 jdk1.8 中在链表尾部插入新节点
                     if ((e = p.next) == null) {
                         p.next = newNode(hash, key, value, null);
+                        // 如果当前链表中的元素大于树化的阈值，进行链表转树的操作
                         if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
                             treeifyBin(tab, hash);
                         break;
                     }
+                    // 如果 key 已经存在，直接结束循环
                     if (e.hash == hash &&
                         ((k = e.key) == key || (key != null && key.equals(k))))
                         break;
+                    // 重置 p 用于遍历
                     p = e;
                 }
             }
+            // 如果 key 重复则更新 key 值
             if (e != null) { // existing mapping for key
                 V oldValue = e.value;
+                // 更新当前 key 值
                 if (!onlyIfAbsent || oldValue == null)
                     e.value = value;
                 afterNodeAccess(e);
@@ -699,6 +720,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             }
         }
         ++modCount;
+        // 如果容量大于阈值时（capacity * load factor），进行扩容操作
         if (++size > threshold)
             resize();
         afterNodeInsertion(evict);

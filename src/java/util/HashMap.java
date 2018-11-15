@@ -346,6 +346,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * cheapest possible way to reduce systematic lossage, as well as
      * to incorporate impact of the highest bits that would otherwise
      * never be used in index calculations because of table bounds.
+     *
+     * 计算 key 的哈希码
      */
     static final int hash(Object key) {
         int h;
@@ -558,7 +560,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     }
 
     /**
-     * Returns the number of key-value mappings in this map.
+     * Returns the number of key-value mappings in this map
      *
      * @return the number of key-value mappings in this map
      */
@@ -589,6 +591,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * possible that the map explicitly maps the key to {@code null}.
      * The {@link #containsKey containsKey} operation may be used to
      * distinguish these two cases.
+     *
+     * 根据 key 获取 value
      *
      * @see #put(Object, Object)
      */
@@ -640,6 +644,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * Associates the specified value with the specified key in this map.
      * If the map previously contained a mapping for the key, the old
      * value is replaced.
+     *
+     * 添加键值对
      *
      * @param key key with which the specified value is to be associated
      * @param value value to be associated with the specified key
@@ -734,14 +740,18 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * elements from each bin must either stay at same index, or move
      * with a power of two offset in the new table.
      *
+     * rehash 或者初始化哈希表
+     *
      * @return the table
      */
+    // todo
     final Node<K,V>[] resize() {
         Node<K,V>[] oldTab = table;
         int oldCap = (oldTab == null) ? 0 : oldTab.length;
         int oldThr = threshold;
         int newCap, newThr = 0;
         if (oldCap > 0) {
+            // 如果哈希表
             if (oldCap >= MAXIMUM_CAPACITY) {
                 threshold = Integer.MAX_VALUE;
                 return oldTab;
@@ -813,24 +823,38 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /**
      * Replaces all linked nodes in bin at index for given hash unless
      * table is too small, in which case resizes instead.
+     *
+     * 链表转树
+     * 注意：链表转树只会转某一个桶位置上的链表，并不会将所有桶位置上链表都转树
+     * 会先将 Node 形式的链表转成 TreeNode 形式的链表
      */
     final void treeifyBin(Node<K,V>[] tab, int hash) {
+        /**
+         * n：哈希表容量大小
+         */
         int n, index; Node<K,V> e;
+        // 如果哈希表数组为 null，或者没有达到树化的条件（哈希表数组容量大于 64），进行初始化或者扩容操作
         if (tab == null || (n = tab.length) < MIN_TREEIFY_CAPACITY)
             resize();
+        // TODO 为什么多 tab[index = (n - 1) & hash] 一个判断（计算出的桶位置是否有元素）
+        // e 为某一个桶位置上（需要树化）的头节点，可以解释上面的原因
         else if ((e = tab[index = (n - 1) & hash]) != null) {
             TreeNode<K,V> hd = null, tl = null;
             do {
+                // 链表节点转树节点
                 TreeNode<K,V> p = replacementTreeNode(e, null);
                 if (tl == null)
                     hd = p;
+                // 如果尾节点不为 null，设置树节点的前节点为当前尾节点，连接起来
                 else {
                     p.prev = tl;
                     tl.next = p;
                 }
+                // 重置尾节点为新插入的树节点
                 tl = p;
             } while ((e = e.next) != null);
             if ((tab[index] = hd) != null)
+                // 所有树节点都已经连接好，进行转树操作
                 hd.treeify(tab);
         }
     }
@@ -1863,9 +1887,12 @@ public class HashMap<K,V> extends AbstractMap<K,V>
 
         /**
          * Returns root of tree containing this node.
+         *
+         * 获取顶层父节点
          */
         final TreeNode<K,V> root() {
             for (TreeNode<K,V> r = this, p;;) {
+                // 当前节点没有父节点时返回
                 if ((p = r.parent) == null)
                     return r;
                 r = p;
@@ -1957,6 +1984,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
          * Forms tree of the nodes linked from this node.
          * @return root of tree
          */
+        // TODO
         final void treeify(Node<K,V>[] tab) {
             TreeNode<K,V> root = null;
             for (TreeNode<K,V> x = this, next; x != null; x = next) {

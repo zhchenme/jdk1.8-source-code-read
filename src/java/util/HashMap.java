@@ -442,8 +442,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /**
      * The next size value at which to resize (capacity * load factor).
      *
-     * capacity * load factor
-     * 哈希表容量阈值
+     * 哈希表键值对个数阈值
+     * 注意：当哈希表没有被分配时，threshold = DEFAULT_INITIAL_CAPACITY
      *
      * @serial
      */
@@ -726,7 +726,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             }
         }
         ++modCount;
-        // 如果容量大于阈值时（capacity * load factor），进行扩容操作
+        // 如果键值对个数大于阈值时（capacity * load factor），进行扩容操作
         if (++size > threshold)
             resize();
         afterNodeInsertion(evict);
@@ -740,56 +740,71 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * elements from each bin must either stay at same index, or move
      * with a power of two offset in the new table.
      *
-     * rehash 或者初始化哈希表
+     * rehash（扩容）或者初始化哈希表
      *
      * @return the table
      */
-    // TODO
     final Node<K,V>[] resize() {
+        // 用于记录老的哈希表
         Node<K,V>[] oldTab = table;
         int oldCap = (oldTab == null) ? 0 : oldTab.length;
         int oldThr = threshold;
         int newCap, newThr = 0;
         if (oldCap > 0) {
-            // 如果哈希表
+            // 如果哈希表容量已达最大值，不进行扩容，并把阈值置为 0x7fffffff，防止再次调用扩容函数
             if (oldCap >= MAXIMUM_CAPACITY) {
                 threshold = Integer.MAX_VALUE;
                 return oldTab;
             }
+            // 新容量为原来数组大小的两倍
             else if ((newCap = oldCap << 1) < MAXIMUM_CAPACITY &&
                      oldCap >= DEFAULT_INITIAL_CAPACITY)
+                // 把新的扩容阈值也扩大为两倍
                 newThr = oldThr << 1; // double threshold
         }
+        // TODO 为什么把新哈希表容量置为老的扩容阈值？
         else if (oldThr > 0) // initial capacity was placed in threshold
             newCap = oldThr;
+        // 初始化哈希表，初始化容量为 16，阈值为 0.75 * 16
         else {               // zero initial threshold signifies using defaults
             newCap = DEFAULT_INITIAL_CAPACITY;
             newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
         }
+        // 阈值为 0 额外处理
         if (newThr == 0) {
             float ft = (float)newCap * loadFactor;
             newThr = (newCap < MAXIMUM_CAPACITY && ft < (float)MAXIMUM_CAPACITY ?
                       (int)ft : Integer.MAX_VALUE);
         }
+        // 重置阈值与哈希表
         threshold = newThr;
         @SuppressWarnings({"rawtypes","unchecked"})
             Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];
         table = newTab;
+        /*------------------------------ 以上为新哈希表分配容量，以下为元素 rehash ------------------------------------*/
         if (oldTab != null) {
             for (int j = 0; j < oldCap; ++j) {
                 Node<K,V> e;
                 if ((e = oldTab[j]) != null) {
+                    // rehash 之前记录元素后直接置 null，让 GC 回收
                     oldTab[j] = null;
+                    // 如果当前桶位置上只有一个元素，直接进行 rehash
                     if (e.next == null)
                         newTab[e.hash & (newCap - 1)] = e;
+                    // 处理树节点
                     else if (e instanceof TreeNode)
                         ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);
+                    // 处理链表节点
                     else { // preserve order
+                        // 记录老的哈希表中的链表
                         Node<K,V> loHead = null, loTail = null;
                         Node<K,V> hiHead = null, hiTail = null;
                         Node<K,V> next;
+                        // 遍历当前桶位置上的所有节点
                         do {
                             next = e.next;
+                            // TODO 既可以使元素均匀的分布在新的哈希表中，又可以保证哈希值的正确性（比如 get(key) 操作）
+                            // (e.hash & oldCap) 计算的不是在老哈希表中的桶位置，这样计算可以使数据均匀的分布在新的哈希表中
                             if ((e.hash & oldCap) == 0) {
                                 if (loTail == null)
                                     loHead = e;
@@ -805,6 +820,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                                 hiTail = e;
                             }
                         } while ((e = next) != null);
+                        // 下面为新的哈希表赋值（移动整个链表）
                         if (loTail != null) {
                             loTail.next = null;
                             newTab[j] = loHead;
@@ -2237,6 +2253,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
          * @param index the index of the table being split
          * @param bit the bit of hash to split on
          */
+        // TODO
         final void split(HashMap<K,V> map, Node<K,V>[] tab, int index, int bit) {
             TreeNode<K,V> b = this;
             // Relink into lo and hi lists, preserving order

@@ -539,7 +539,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         int s = m.size();
         if (s > 0) {
             if (table == null) { // pre-size
-                // todo 为什么要怎么设计？
+                // TODO 为什么要怎么设计？
                 float ft = ((float)s / loadFactor) + 1.0F;
                 int t = ((ft < (float)MAXIMUM_CAPACITY) ?
                          (int)ft : MAXIMUM_CAPACITY);
@@ -689,7 +689,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         else {
             Node<K,V> e; K k;
             // 如果 key 已经存在，记录存在的节点
-            // todo 为什么多了一步头节点 key "存在"判断？
+            // TODO 为什么多了一步头节点 key "存在"判断？
             if (p.hash == hash &&
                 ((k = p.key) == key || (key != null && key.equals(k))))
                 e = p;
@@ -744,7 +744,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      *
      * @return the table
      */
-    // todo
+    // TODO
     final Node<K,V>[] resize() {
         Node<K,V>[] oldTab = table;
         int oldCap = (oldTab == null) ? 0 : oldTab.length;
@@ -826,7 +826,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      *
      * 链表转树
      * 注意：链表转树只会转某一个桶位置上的链表，并不会将所有桶位置上链表都转树
-     * 会先将 Node 形式的链表转成 TreeNode 形式的链表
+     * 会先将 Node 形式的链表转成 TreeNode 形式的链表，然后转树
      */
     final void treeifyBin(Node<K,V>[] tab, int hash) {
         /**
@@ -836,8 +836,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         // 如果哈希表数组为 null，或者没有达到树化的条件（哈希表数组容量大于 64），进行初始化或者扩容操作
         if (tab == null || (n = tab.length) < MIN_TREEIFY_CAPACITY)
             resize();
-        // TODO 为什么多 tab[index = (n - 1) & hash] 一个判断（计算出的桶位置是否有元素）
-        // e 为某一个桶位置上（需要树化）的头节点，可以解释上面的原因
+        // e 为某一个桶位置上（需要树化）的头节点
         else if ((e = tab[index = (n - 1) & hash]) != null) {
             TreeNode<K,V> hd = null, tl = null;
             do {
@@ -855,6 +854,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             } while ((e = e.next) != null);
             if ((tab[index] = hd) != null)
                 // 所有树节点都已经连接好，进行转树操作
+                // 注意传入的并非整个哈希表，而是某桶位置上的所有节点（树节点）
                 hd.treeify(tab);
         }
     }
@@ -1832,6 +1832,14 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     }
 
     // For treeifyBin
+
+    /**
+     * 把 Node 转成 TreeNode
+     *
+     * @param p
+     * @param next
+     * @return
+     */
     TreeNode<K,V> replacementTreeNode(Node<K,V> p, Node<K,V> next) {
         return new TreeNode<>(p.hash, p.key, p.value, next);
     }
@@ -1902,6 +1910,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         /**
          * Ensures that the given root is the first node of its bin.
          */
+        // TODO
         static <K,V> void moveRootToFront(Node<K,V>[] tab, TreeNode<K,V> root) {
             int n;
             if (root != null && tab != null && (n = tab.length) > 0) {
@@ -1982,42 +1991,62 @@ public class HashMap<K,V> extends AbstractMap<K,V>
 
         /**
          * Forms tree of the nodes linked from this node.
+         *
+         * 链表（树节点）转树
+         *
          * @return root of tree
          */
-        // TODO
         final void treeify(Node<K,V>[] tab) {
+            // 根节点
             TreeNode<K,V> root = null;
             for (TreeNode<K,V> x = this, next; x != null; x = next) {
                 next = (TreeNode<K,V>)x.next;
                 x.left = x.right = null;
+                // 把链表中的头节点置为根节点
                 if (root == null) {
                     x.parent = null;
                     x.red = false;
                     root = x;
                 }
                 else {
+                    /**
+                     * k：当前节点的 key
+                     * h：当前节点 key 的哈希值
+                     */
                     K k = x.key;
                     int h = x.hash;
                     Class<?> kc = null;
                     for (TreeNode<K,V> p = root;;) {
+                        /**
+                         * pk：根节点的 key
+                         * ph：根节点 key 的哈希值
+                         * dir：哈希值判断结果，左右孩子判定依据
+                         */
                         int dir, ph;
                         K pk = p.key;
+                        /**
+                         * 比较当前节点与根节点的哈希值
+                         * 如果当前节点的哈希值小于根节点，插入在根节点的左边，反之插入在根节点右边
+                         */
                         if ((ph = p.hash) > h)
                             dir = -1;
                         else if (ph < h)
                             dir = 1;
+                        // TODO 待分析
                         else if ((kc == null &&
                                   (kc = comparableClassFor(k)) == null) ||
                                  (dir = compareComparables(kc, k, pk)) == 0)
                             dir = tieBreakOrder(k, pk);
 
                         TreeNode<K,V> xp = p;
+                        // 当左右孩子节点为 null 时，直接插入当前节点
                         if ((p = (dir <= 0) ? p.left : p.right) == null) {
                             x.parent = xp;
                             if (dir <= 0)
                                 xp.left = x;
                             else
                                 xp.right = x;
+                            // 节点调整
                             root = balanceInsertion(root, x);
                             break;
                         }
@@ -2294,8 +2323,9 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             return root;
         }
 
+        // TODO
         static <K,V> TreeNode<K,V> balanceInsertion(TreeNode<K,V> root,
-                                                    TreeNode<K,V> x) {
+                                                     TreeNode<K,V> x) {
             x.red = true;
             for (TreeNode<K,V> xp, xpp, xppl, xppr;;) {
                 if ((xp = x.parent) == null) {

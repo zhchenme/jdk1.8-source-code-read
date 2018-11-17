@@ -741,6 +741,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * with a power of two offset in the new table.
      *
      * rehash（扩容）或者初始化哈希表
+     * 注意；这个 resize() 不仅用于 rehash，也用于初始化哈希表，内部的具体实现细节可以经常翻出来看一下
      *
      * @return the table
      */
@@ -783,10 +784,11 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         table = newTab;
         /*------------------------------ 以上为新哈希表分配容量，以下为元素 rehash ------------------------------------*/
         if (oldTab != null) {
+            // 遍历当前哈希表，将当前桶位置的键值对（链表或树或只有一个节点）赋值到新的哈希表中
             for (int j = 0; j < oldCap; ++j) {
                 Node<K,V> e;
                 if ((e = oldTab[j]) != null) {
-                    // rehash 之前记录元素后直接置 null，让 GC 回收
+                    // rehash 之前记录链表后直接置 null，让 GC 回收
                     oldTab[j] = null;
                     // 如果当前桶位置上只有一个元素，直接进行 rehash
                     if (e.next == null)
@@ -796,7 +798,14 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                         ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);
                     // 处理链表节点
                     else { // preserve order
-                        // 记录老的哈希表中的链表
+                        /**
+                         * 条件：原哈希表大小为 16，扩容后的哈希表大小为 32
+                         *
+                         * 1.假设某个 key 的哈希值为 17，那么它在原来哈希表中的桶位置为 1，在新的哈希表中的桶位置也为 17
+                         * 通过 ((e.hash & oldCap) == 0) 判断条件不成立，rehash 时通过 newTab[j + oldCap] = hiHead 赋值，保证其位置正确性
+                         * 2.假设某个 key 的哈希值为 63，那么它在原来哈希表中的桶位置为 1，在新的哈希表中的桶位置也为 1
+                         * 通过 ((e.hash & oldCap) == 0) 判断条件成立，通过 newTab[j] = loHead 赋值，保证其位置正确性
+                         */
                         Node<K,V> loHead = null, loTail = null;
                         Node<K,V> hiHead = null, hiTail = null;
                         Node<K,V> next;

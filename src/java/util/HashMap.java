@@ -493,6 +493,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * capacity and the default load factor (0.75).
      *
      * 自定义初始容量的构造函数
+     * 注意：在构造函数中一般会初始化加载因子，不会初始化默认容量与扩容阈值（在 resize() 方法中初始化）
      *
      * @param  initialCapacity the initial capacity.
      * @throws IllegalArgumentException if the initial capacity is negative.
@@ -505,7 +506,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * Constructs an empty <tt>HashMap</tt> with the default initial capacity
      * (16) and the default load factor (0.75).
      *
-     * 无参构造函数，初始化荣来给你默认为 16，哈希因子为 0.75f
+     * 无参构造函数，初始化容量默认为 16，哈希因子为 0.75f
      *
      */
     public HashMap() {
@@ -562,6 +563,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /**
      * Returns the number of key-value mappings in this map
      *
+     * 返回当前 hashMap 中的键值对个数
+     *
      * @return the number of key-value mappings in this map
      */
     public int size() {
@@ -604,20 +607,28 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /**
      * Implements Map.get and related methods
      *
+     * 根据 key 获取 对应的节点
+     * 1.根据 key 的哈希码计算出对应的桶位置
+     * 2.判断是否为头节点、树节点、链表后进行查找
+     *
      * @param hash hash for key
      * @param key the key
      * @return the node, or null if none
      */
     final Node<K,V> getNode(int hash, Object key) {
         Node<K,V>[] tab; Node<K,V> first, e; int n; K k;
+        // 进行判断并通过 tab[(n - 1) & hash] 计算当前 key 在哈希表中的位置
         if ((tab = table) != null && (n = tab.length) > 0 &&
             (first = tab[(n - 1) & hash]) != null) {
+            // 如果是当前桶位置上的头节点直接返回
             if (first.hash == hash && // always check first node
                 ((k = first.key) == key || (key != null && key.equals(k))))
                 return first;
+            // 如果不是头节点不是要找的节点，判断是树节点还是链表节点后继续查找
             if ((e = first.next) != null) {
                 if (first instanceof TreeNode)
                     return ((TreeNode<K,V>)first).getTreeNode(hash, key);
+                // 链表、从头节点开始遍历查找
                 do {
                     if (e.hash == hash &&
                         ((k = e.key) == key || (key != null && key.equals(k))))
@@ -631,6 +642,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /**
      * Returns <tt>true</tt> if this map contains a mapping for the
      * specified key.
+     *
+     * 判断 hashMap 中是否包含当前 key
      *
      * @param   key   The key whose presence in this map is to be tested
      * @return <tt>true</tt> if this map contains a mapping for the specified
@@ -667,7 +680,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * @param key the key
      * @param value the value to put
      * @param onlyIfAbsent if true, don't change existing value 为 true 时不改变已经存在的值
-     * @param evict if false, the table is in creation mode. 为 false 时表示哈希表正在创建
+     * @param evict if false, the table is in creation mode.    为 false 时表示哈希表正在创建
      * @return previous value, or null if none
      */
     final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
@@ -812,8 +825,10 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                         // 遍历当前桶位置上的所有节点
                         do {
                             next = e.next;
-                            // TODO 既可以使元素均匀的分布在新的哈希表中，又可以保证哈希值的正确性（比如 get(key) 操作）
-                            // (e.hash & oldCap) 计算的不是在老哈希表中的桶位置，这样计算可以使数据均匀的分布在新的哈希表中
+                            /**
+                             * 既可以使元素均匀的分布在新的哈希表中，又可以保证哈希值的正确性（比如 get(key) 操作）
+                             * (e.hash & oldCap) 计算的不是在老哈希表中的桶位置，这样计算可以使数据均匀的分布在新的哈希表中
+                             */
                             if ((e.hash & oldCap) == 0) {
                                 if (loTail == null)
                                     loHead = e;
@@ -899,6 +914,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /**
      * Removes the mapping for the specified key from this map if present.
      *
+     * 根据 key 移除键值对，并返回对应的 value
+     *
      * @param  key key whose mapping is to be removed from the map
      * @return the previous value associated with <tt>key</tt>, or
      *         <tt>null</tt> if there was no mapping for <tt>key</tt>.
@@ -914,22 +931,28 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /**
      * Implements Map.remove and related methods
      *
-     * @param hash hash for key
-     * @param key the key
-     * @param value the value to match if matchValue, else ignored
-     * @param matchValue if true only remove if value is equal
-     * @param movable if false do not move other nodes while removing
+     * 移除键值对并返回
+     * 注意：很多地方在判断 key 是否相同时都先判断哈希码是否相同，再接着进行其他的条件判断
+     *
+     * @param hash hash for key                                       key 的哈希码
+     * @param key the key                                             key 值
+     * @param value the value to match if matchValue, else ignored    对应的 value 值
+     * @param matchValue if true only remove if value is equal        移除时是否判断 value
+     * @param movable if false do not move other nodes while removing 移除键值对时是否移动其他节点
      * @return the node, or null if none
      */
     final Node<K,V> removeNode(int hash, Object key, Object value,
                                boolean matchValue, boolean movable) {
         Node<K,V>[] tab; Node<K,V> p; int n, index;
+        // 判断，并根据哈希码计算出对应的桶位置 p 头节点
         if ((tab = table) != null && (n = tab.length) > 0 &&
             (p = tab[index = (n - 1) & hash]) != null) {
             Node<K,V> node = null, e; K k; V v;
+            // 判断当前 key 对应的是否头节点，如果是直接记录头节点，因为还有判断条件需要执行（matchValue ..）
             if (p.hash == hash &&
                 ((k = p.key) == key || (key != null && key.equals(k))))
                 node = p;
+            // 如果不是头节点就判断是链表还是树
             else if ((e = p.next) != null) {
                 if (p instanceof TreeNode)
                     node = ((TreeNode<K,V>)p).getTreeNode(hash, key);
@@ -945,8 +968,15 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                     } while ((e = e.next) != null);
                 }
             }
+            /* -------------------- 上面的代码用于找到要删除的节点，下面进行删除与判断（是否判断 value 也相同） --------------- */
             if (node != null && (!matchValue || (v = node.value) == value ||
                                  (value != null && value.equals(v)))) {
+                /**
+                 * 1.树节点
+                 * 2.链表头节点
+                 * 3.链表非头节点
+                 *
+                 */
                 if (node instanceof TreeNode)
                     ((TreeNode<K,V>)node).removeTreeNode(this, tab, movable);
                 else if (node == p)
@@ -954,6 +984,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                 else
                     p.next = node.next;
                 ++modCount;
+                // size - 1
                 --size;
                 afterNodeRemoval(node);
                 return node;
@@ -965,12 +996,15 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /**
      * Removes all of the mappings from this map.
      * The map will be empty after this call returns.
+     *
+     * 清空哈希表
      */
     public void clear() {
         Node<K,V>[] tab;
         modCount++;
         if ((tab = table) != null && size > 0) {
             size = 0;
+            // 循环将所有桶位置上的键值对置 null
             for (int i = 0; i < tab.length; ++i)
                 tab[i] = null;
         }
@@ -980,6 +1014,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * Returns <tt>true</tt> if this map maps one or more keys to the
      * specified value.
      *
+     * 判断当前哈希表中是否包含指定的 value
+     *
      * @param value value whose presence in this map is to be tested
      * @return <tt>true</tt> if this map maps one or more keys to the
      *         specified value
@@ -987,7 +1023,10 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     public boolean containsValue(Object value) {
         Node<K,V>[] tab; V v;
         if ((tab = table) != null && size > 0) {
+            // 遍历哈希表
             for (int i = 0; i < tab.length; ++i) {
+                // 遍历当前桶上的所有节点
+                // TODO 为什么没有对节点类型进行判断，分别走对应的查找？
                 for (Node<K,V> e = tab[i]; e != null; e = e.next) {
                     if ((v = e.value) == value ||
                         (value != null && value.equals(v)))
@@ -1154,22 +1193,51 @@ public class HashMap<K,V> extends AbstractMap<K,V>
 
     // Overrides of JDK8 Map extension methods
 
+    /**
+     * 根据 key 查找 value，如果没有找到返回默认值
+     *
+     * @param key
+     * @param defaultValue
+     * @return
+     */
     @Override
     public V getOrDefault(Object key, V defaultValue) {
         Node<K,V> e;
         return (e = getNode(hash(key), key)) == null ? defaultValue : e.value;
     }
 
+    /**
+     * 只有当 key 不存在时才添加键值对
+     *
+     * @param key
+     * @param value
+     * @return
+     */
     @Override
     public V putIfAbsent(K key, V value) {
         return putVal(hash(key), key, value, true, true);
     }
 
+    /**
+     * 根据 key 和 value 移除键值对，并返回 true/false
+     *
+     * @param key
+     * @param value
+     * @return
+     */
     @Override
     public boolean remove(Object key, Object value) {
         return removeNode(hash(key), key, value, true, true) != null;
     }
 
+    /**
+     * 根据 key 替换 value，替换之前比较 value 是否与传入的 value 相同
+     *
+     * @param key
+     * @param oldValue
+     * @param newValue
+     * @return
+     */
     @Override
     public boolean replace(K key, V oldValue, V newValue) {
         Node<K,V> e; V v;
@@ -1182,6 +1250,13 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         return false;
     }
 
+    /**
+     * 根据 key 替换 value，并返回原来的 value
+     *
+     * @param key
+     * @param value
+     * @return
+     */
     @Override
     public V replace(K key, V value) {
         Node<K,V> e;

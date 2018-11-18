@@ -3,24 +3,6 @@
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
  *
  *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.util;
@@ -160,6 +142,13 @@ import java.io.IOException;
  * @see     Hashtable
  * @since   1.4
  */
+
+/**
+ * 继承了 HashMap
+ * 
+ * @param <K>
+ * @param <V>
+ */
 public class LinkedHashMap<K,V>
     extends HashMap<K,V>
     implements Map<K,V>
@@ -188,8 +177,13 @@ public class LinkedHashMap<K,V>
 
     /**
      * HashMap.Node subclass for normal LinkedHashMap entries.
+     * 
+     * 内部数据结构，继承自 HashMap 中的 Node
      */
     static class Entry<K,V> extends HashMap.Node<K,V> {
+        /**
+         * 用于构成双向链表，维护 LinkedHashMap 的顺序
+         */
         Entry<K,V> before, after;
         Entry(int hash, K key, V value, Node<K,V> next) {
             super(hash, key, value, next);
@@ -200,11 +194,15 @@ public class LinkedHashMap<K,V>
 
     /**
      * The head (eldest) of the doubly linked list.
+     * 
+     * 双向链表的头结点
      */
     transient LinkedHashMap.Entry<K,V> head;
 
     /**
      * The tail (youngest) of the doubly linked list.
+     * 
+     * 双向链表的尾节点
      */
     transient LinkedHashMap.Entry<K,V> tail;
 
@@ -212,6 +210,10 @@ public class LinkedHashMap<K,V>
      * The iteration ordering method for this linked hash map: <tt>true</tt>
      * for access-order, <tt>false</tt> for insertion-order.
      *
+     * 键值对迭代顺序策略
+     * true：access-order     访问顺序，使用迭代器遍历时，get 的元素会被添加到最后
+     * false：insertion-order 插入顺序
+     * 
      * @serial
      */
     final boolean accessOrder;
@@ -219,12 +221,21 @@ public class LinkedHashMap<K,V>
     // internal utilities
 
     // link at the end of list
+
+    /**
+     * 在尾部插入加点 
+     *
+     * @param p
+     */
     private void linkNodeLast(LinkedHashMap.Entry<K,V> p) {
+        // 获取并记录 tail 节点
         LinkedHashMap.Entry<K,V> last = tail;
+        // 重置 tail
         tail = p;
         if (last == null)
             head = p;
         else {
+            // 将节点连接起来，构成双向链表
             p.before = last;
             last.after = p;
         }
@@ -302,6 +313,7 @@ public class LinkedHashMap<K,V>
         }
     }
 
+    // TODO 元素顺序调整
     void afterNodeAccess(Node<K,V> e) { // move node to last
         LinkedHashMap.Entry<K,V> last;
         if (accessOrder && (last = tail) != e) {
@@ -338,6 +350,8 @@ public class LinkedHashMap<K,V>
      * Constructs an empty insertion-ordered <tt>LinkedHashMap</tt> instance
      * with the specified initial capacity and load factor.
      *
+     * 直接调用 HashMap 中的构造函数
+     * 
      * @param  initialCapacity the initial capacity
      * @param  loadFactor      the load factor
      * @throws IllegalArgumentException if the initial capacity is negative
@@ -345,6 +359,7 @@ public class LinkedHashMap<K,V>
      */
     public LinkedHashMap(int initialCapacity, float loadFactor) {
         super(initialCapacity, loadFactor);
+        // 迭代元素采用插入顺序策略
         accessOrder = false;
     }
 
@@ -357,15 +372,19 @@ public class LinkedHashMap<K,V>
      */
     public LinkedHashMap(int initialCapacity) {
         super(initialCapacity);
+        // 迭代元素采用插入顺序策略
         accessOrder = false;
     }
 
     /**
      * Constructs an empty insertion-ordered <tt>LinkedHashMap</tt> instance
      * with the default initial capacity (16) and load factor (0.75).
+     * 
+     * 无参构造函数，默认的初始容量为 16，加载因子为 0.75
      */
     public LinkedHashMap() {
         super();
+        // 迭代元素采用插入顺序策略
         accessOrder = false;
     }
 
@@ -375,6 +394,8 @@ public class LinkedHashMap<K,V>
      * instance is created with a default load factor (0.75) and an initial
      * capacity sufficient to hold the mappings in the specified map.
      *
+     * 同 HashMap ...
+     * 
      * @param  m the map whose mappings are to be placed in this map
      * @throws NullPointerException if the specified map is null
      */
@@ -388,6 +409,8 @@ public class LinkedHashMap<K,V>
      * Constructs an empty <tt>LinkedHashMap</tt> instance with the
      * specified initial capacity, load factor and ordering mode.
      *
+     * 指定迭代元素策略的构造函数
+     * 
      * @param  initialCapacity the initial capacity
      * @param  loadFactor      the load factor
      * @param  accessOrder     the ordering mode - <tt>true</tt> for
@@ -406,12 +429,17 @@ public class LinkedHashMap<K,V>
     /**
      * Returns <tt>true</tt> if this map maps one or more keys to the
      * specified value.
+     * 
+     * 当前 LinkedHashMap 是否包含指定的 value
      *
      * @param value value whose presence in this map is to be tested
      * @return <tt>true</tt> if this map maps one or more keys to the
      *         specified value
      */
     public boolean containsValue(Object value) {
+        /**
+         * 遍历双向链表，判断 value
+         */
         for (LinkedHashMap.Entry<K,V> e = head; e != null; e = e.after) {
             V v = e.value;
             if (v == value || (value != null && value.equals(v)))
@@ -434,11 +462,15 @@ public class LinkedHashMap<K,V>
      * possible that the map explicitly maps the key to {@code null}.
      * The {@link #containsKey containsKey} operation may be used to
      * distinguish these two cases.
+     * 
+     * 根据 key 获取对应的 value
      */
     public V get(Object key) {
         Node<K,V> e;
+        // 调用 hashMap 中的 getNode() 方法，根据 key 的哈希值找到对应的桶位置，判断节点后（链表、头结点、树节点）进行返回
         if ((e = getNode(hash(key), key)) == null)
             return null;
+        // 如果 accessOrder 为 true，获取元素后把当前键值对调整到尾部
         if (accessOrder)
             afterNodeAccess(e);
         return e.value;

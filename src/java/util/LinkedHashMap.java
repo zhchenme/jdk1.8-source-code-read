@@ -1,7 +1,8 @@
 /*
- * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
- * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+ * LinkedHashMap 继承了 HashMap
+ * 内部通过两个节点（before、after）使插入元素构成一个双向链表
  *
+ * 可参考链接：https://juejin.im/post/5ace2bde6fb9a028e25deca8
  *
  */
 
@@ -313,15 +314,24 @@ public class LinkedHashMap<K,V>
         }
     }
 
-    // TODO 元素顺序调整
+    /**
+     * 如果键值对的迭代策略是 access-order（true），在获取键值后会移动该键值对到尾节点
+     *
+     * @param e
+     */
     void afterNodeAccess(Node<K,V> e) { // move node to last
         LinkedHashMap.Entry<K,V> last;
+        // 判断迭代策略，并且当前节点不是尾节点
         if (accessOrder && (last = tail) != e) {
+            // 记录当前节点，并获取前后节点
             LinkedHashMap.Entry<K,V> p =
                 (LinkedHashMap.Entry<K,V>)e, b = p.before, a = p.after;
+            // 把当前节点的 after 节点置 null
             p.after = null;
+            // 如果当前节点是头节点，把后一个节点置为头节点
             if (b == null)
                 head = a;
+            // 把当前节点的前后节点相连
             else
                 b.after = a;
             if (a != null)
@@ -330,6 +340,7 @@ public class LinkedHashMap<K,V>
                 last = b;
             if (last == null)
                 head = p;
+            // 把当前节点置为尾节点并记录
             else {
                 p.before = last;
                 last.after = p;
@@ -432,13 +443,17 @@ public class LinkedHashMap<K,V>
      * 
      * 当前 LinkedHashMap 是否包含指定的 value
      *
+     * 与 hashMap 区别：
+     * 1.HashMap 中遍历哈希表中的所有桶，然后遍历所有节点
+     * 2.LinkedHashMap 通过头节点遍历，一直遍历到尾节点
+     *
      * @param value value whose presence in this map is to be tested
      * @return <tt>true</tt> if this map maps one or more keys to the
      *         specified value
      */
     public boolean containsValue(Object value) {
         /**
-         * 遍历双向链表，判断 value
+         * 遍历双向链表，判断 value，与 HashMap 完全不同
          */
         for (LinkedHashMap.Entry<K,V> e = head; e != null; e = e.after) {
             V v = e.value;
@@ -477,6 +492,9 @@ public class LinkedHashMap<K,V>
     }
 
     /**
+     * 根据 key 获取元素，如果不存在返回默认值
+     * 用户 HashMap
+     *
      * {@inheritDoc}
      */
     public V getOrDefault(Object key, V defaultValue) {
@@ -490,6 +508,7 @@ public class LinkedHashMap<K,V>
 
     /**
      * {@inheritDoc}
+     * 清空所有键值对（遍历所有桶，置 null），并将头尾节点值 null
      */
     public void clear() {
         super.clear();

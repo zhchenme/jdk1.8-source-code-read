@@ -1162,6 +1162,12 @@ public class ArrayList<E> extends AbstractList<E>
         }
     }
 
+    /**
+     * 据说有小伙伴使用 forEach 删除元素时报了并发修改异常？重点画一下，咳咳～
+     * 这里以移除元素为例
+     *
+     * @param action
+     */
     @Override
     public void forEach(Consumer<? super E> action) {
         Objects.requireNonNull(action);
@@ -1169,9 +1175,11 @@ public class ArrayList<E> extends AbstractList<E>
         @SuppressWarnings("unchecked")
         final E[] elementData = (E[]) this.elementData;
         final int size = this.size;
+        // 在移除元素时 modCount 会自增，在移除元素之前 expectedModCount = modCount
         for (int i=0; modCount == expectedModCount && i < size; i++) {
             action.accept(elementData[i]);
         }
+        // 在移除元素之后 modCount 显然就变大了，拿着改变之前的值与改变之后的值做比较肯定是不一样的
         if (modCount != expectedModCount) {
             throw new ConcurrentModificationException();
         }

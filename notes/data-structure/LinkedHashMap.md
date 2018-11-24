@@ -8,7 +8,7 @@
 - `HashMap` 遍历哈希表中的所有桶，然后遍历桶位置上的所有节点
 - `LinkedHashMap` 从头节点遍历，一直遍历到尾节点
 
-`HashMap` 中代码如下
+`HashMap` 中代码如下：
 ``` java
     public boolean containsValue(Object value) {
         Node<K,V>[] tab; V v;
@@ -28,7 +28,7 @@
     }
 ```
 
-`LinkedHashMap` 中代码如下
+`LinkedHashMap` 中代码如下：
 ``` java
     public boolean containsValue(Object value) {
         /**
@@ -68,6 +68,23 @@
     }
 ```
 
+`linkNodeLast` 方法具体实现：
+``` java
+    private void linkNodeLast(LinkedHashMap.Entry<K,V> p) {
+        // 获取并记录 tail 节点
+        LinkedHashMap.Entry<K,V> last = tail;
+        // 重置 tail
+        tail = p;
+        if (last == null)
+            head = p;
+        else {
+            // 将节点连接起来，构成双向链表
+            p.before = last;
+            last.after = p;
+        }
+    }
+```
+
 看了上面的方法我们就知道为什么 `LinkedHashMap` 公用 `HashMap` 的方法也能维持一个双向链表了。
 
 #### 1.3 `LinkedHashMap` 迭代键值对与 `HashMap` 的对比
@@ -84,7 +101,7 @@
              throw new ConcurrentModificationException();
          if (e == null)
               throw new NoSuchElementException();
-          / 过滤掉没有键值对的桶位置
+          // 过滤掉没有键值对的桶位置
          if ((next = (current = e).next) == null && (t = table) != null) {
               do {} while (index < t.length && (next = t[index++]) == null);
          }

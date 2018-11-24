@@ -4,6 +4,8 @@
  *
  * 可参考链接：https://juejin.im/post/5ace2bde6fb9a028e25deca8
  *
+ * 如果在 LinkedhashMap 中你看到很多没有使用的方法，大部分都是重写 HashMap 的，用于维护双向链表
+ *
  */
 
 package java.util;
@@ -243,10 +245,19 @@ public class LinkedHashMap<K,V>
     }
 
     // apply src's links to dst
+
+    /**
+     * 使用某个节点替换当前节点
+     *
+     * @param src
+     * @param dst
+     */
     private void transferLinks(LinkedHashMap.Entry<K,V> src,
                                LinkedHashMap.Entry<K,V> dst) {
+        // 获取当前节点前后节点
         LinkedHashMap.Entry<K,V> b = dst.before = src.before;
         LinkedHashMap.Entry<K,V> a = dst.after = src.after;
+        // 替换节点
         if (b == null)
             head = dst;
         else
@@ -264,9 +275,22 @@ public class LinkedHashMap<K,V>
         head = tail = null;
     }
 
+    /**
+     * PS：HashMap 在添加键值对的时候都是通过创建节点的方式
+     *
+     * 重写 HashMap 中的 newNode 方法
+     *
+     * @param hash
+     * @param key
+     * @param value
+     * @param e
+     * @return
+     */
     Node<K,V> newNode(int hash, K key, V value, Node<K,V> e) {
+        // 初始化 LinkedHashMap 键值对 Entry
         LinkedHashMap.Entry<K,V> p =
             new LinkedHashMap.Entry<K,V>(hash, key, value, e);
+        // 这一步很重要，添加的键值对都会被添加到 LinkedHashMap 尾部，因此可以形成一个双向链表
         linkNodeLast(p);
         return p;
     }
@@ -279,8 +303,18 @@ public class LinkedHashMap<K,V>
         return t;
     }
 
+    /**
+     * 树节点方法重写
+     *
+     * @param hash
+     * @param key
+     * @param value
+     * @param next
+     * @return
+     */
     TreeNode<K,V> newTreeNode(int hash, K key, V value, Node<K,V> next) {
         TreeNode<K,V> p = new TreeNode<K,V>(hash, key, value, next);
+        // 同上
         linkNodeLast(p);
         return p;
     }
@@ -292,10 +326,19 @@ public class LinkedHashMap<K,V>
         return t;
     }
 
+    /**
+     * 重写 HashMap 中的方法，HashMap 中为空方法
+     * 在移除键值对时使用，用来维持双向链表的正确性
+     *
+     * @param e
+     */
     void afterNodeRemoval(Node<K,V> e) { // unlink
+        // 获取当前节点的前后节点
         LinkedHashMap.Entry<K,V> p =
             (LinkedHashMap.Entry<K,V>)e, b = p.before, a = p.after;
+        // GC 回收
         p.before = p.after = null;
+        // 维持双向链表，移除当前节点
         if (b == null)
             head = a;
         else
@@ -756,6 +799,11 @@ public class LinkedHashMap<K,V>
             return next != null;
         }
 
+        /**
+         * 遍历 LinkedHashMap
+         * nextNode 方法返回的是下一个节点
+         * @return
+         */
         final LinkedHashMap.Entry<K,V> nextNode() {
             LinkedHashMap.Entry<K,V> e = next;
             if (modCount != expectedModCount)
@@ -763,6 +811,7 @@ public class LinkedHashMap<K,V>
             if (e == null)
                 throw new NoSuchElementException();
             current = e;
+            // next 为双向链表的下一个节点
             next = e.after;
             return e;
         }

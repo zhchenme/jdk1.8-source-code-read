@@ -43,4 +43,8 @@
     }
 ```
 
+2.`LinkedHashMap` 中增删改方法都是复用 `HashMap` 的，那么又是怎么维持一个双向链表的呢？
+
+
+
 种 BUG，找 BUG，种 BUG，找 BUG，种 BUG，找 BUG ...

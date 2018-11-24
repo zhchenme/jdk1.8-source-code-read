@@ -986,6 +986,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                 ++modCount;
                 // size - 1
                 --size;
+                // 这个方法的作用在 LinkedHashMap 移除键值对时才有效，删除元素后用来维持双向链表
                 afterNodeRemoval(node);
                 return node;
             }
@@ -1609,16 +1610,24 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             return next != null;
         }
 
+        /**
+         * 遍历 HashMap
+         * nextNode 方法返回的事下一个桶位置上不为空的链表、树或单个节点
+         * @return
+         */
         final Node<K,V> nextNode() {
+            // 记录哈希表数组
             Node<K,V>[] t;
             Node<K,V> e = next;
             if (modCount != expectedModCount)
                 throw new ConcurrentModificationException();
             if (e == null)
                 throw new NoSuchElementException();
+            // 过滤掉没有键值对的桶位置
             if ((next = (current = e).next) == null && (t = table) != null) {
                 do {} while (index < t.length && (next = t[index++]) == null);
             }
+            // 下一个有键值对的桶（单个节点、树节点或链表）
             return e;
         }
 

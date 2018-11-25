@@ -1,24 +1,4 @@
 /*
- * Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
- * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  *
  *
  */
@@ -136,6 +116,12 @@ import java.util.function.Consumer;
  * @since   1.4
  */
 
+/**
+ * 没有继承自 HashMap
+ * 
+ * @param <K>
+ * @param <V>
+ */
 public class IdentityHashMap<K,V>
     extends AbstractMap<K,V>
     implements Map<K,V>, java.io.Serializable, Cloneable
@@ -145,6 +131,8 @@ public class IdentityHashMap<K,V>
      * MUST be a power of two.  The value 32 corresponds to the
      * (specified) expected maximum size of 21, given a load factor
      * of 2/3.
+     * 
+     *  默认的初始化大小 32
      */
     private static final int DEFAULT_CAPACITY = 32;
 
@@ -153,6 +141,8 @@ public class IdentityHashMap<K,V>
      * by either of the constructors with arguments.  The value 4 corresponds
      * to an expected maximum size of 2, given a load factor of 2/3.
      * MUST be a power of two.
+     * 
+     * 最小初始化容量，如果初始化时是一个较小的数则使用该默认的大小
      */
     private static final int MINIMUM_CAPACITY = 4;
 
@@ -160,11 +150,15 @@ public class IdentityHashMap<K,V>
      * The maximum capacity, used if a higher value is implicitly specified
      * by either of the constructors with arguments.
      * MUST be a power of two <= 1<<29.
+     * 
+     * 最大的初始化容量， HashMap 最大容量为 1 << 30
      */
     private static final int MAXIMUM_CAPACITY = 1 << 29;
 
     /**
      * The table, resized as necessary. Length MUST always be a power of two.
+     * 
+     * 哈希表数组
      */
     transient Object[] table; // non-private to simplify nested class access
 
@@ -177,21 +171,29 @@ public class IdentityHashMap<K,V>
 
     /**
      * The number of modifications, to support fast-fail iterators
+     * 
+     * 遍历时用于判断是否发生并发操作异常
      */
     transient int modCount;
 
     /**
      * The next size value at which to resize (capacity * load factor).
+     * 
+     * 扩容阈值
      */
     private transient int threshold;
 
     /**
      * Value representing null keys inside tables.
+     * 
+     * key 为 null 时默认的 key
      */
     static final Object NULL_KEY = new Object();
 
     /**
      * Use NULL_KEY for key if it is null.
+     * 
+     * 当 key 为 null 时，其实 IdentityHashMap 内部 key 并不为 null，而是一个 Object 对象
      */
     private static Object maskNull(Object key) {
         return (key == null ? NULL_KEY : key);
@@ -199,6 +201,8 @@ public class IdentityHashMap<K,V>
 
     /**
      * Returns internal representation of null key back to caller as null.
+     * 
+     * 返回给调用者的 key
      */
     static final Object unmaskNull(Object key) {
         return (key == NULL_KEY ? null : key);
@@ -218,6 +222,8 @@ public class IdentityHashMap<K,V>
      * the map may cause the internal data structure to grow, which may be
      * somewhat time-consuming.
      *
+     * 指定初始化容量大小的构造函数
+     * 
      * @param expectedMaxSize the expected maximum size of the map
      * @throws IllegalArgumentException if <tt>expectedMaxSize</tt> is negative
      */
@@ -225,6 +231,7 @@ public class IdentityHashMap<K,V>
         if (expectedMaxSize < 0)
             throw new IllegalArgumentException("expectedMaxSize is negative: "
                                                + expectedMaxSize);
+        // 初始化哈希表大小
         init(capacity(expectedMaxSize));
     }
 
@@ -235,9 +242,17 @@ public class IdentityHashMap<K,V>
      * (3 * expectedMaxSize)/2, if such a number exists.  Otherwise
      * returns MAXIMUM_CAPACITY.  If (3 * expectedMaxSize)/2 is negative, it
      * is assumed that overflow has occurred, and MAXIMUM_CAPACITY is returned.
+     * 
+     * 假设 expectedMaxSize = 10，minCapacity = 15, result = 16
+     * 假设 expectedMaxSize = 30，minCapacity = 45, result = 64
+     * 假设 expectedMaxSize = 60，minCapacity = 90, result = 128
+     * 
+     * 注意：该函数计算出的容量大小并不是 expectedMaxSize 最小的 2 的幂
+     * 
      */
     private int capacity(int expectedMaxSize) {
         // Compute min capacity for expectedMaxSize given a load factor of 2/3
+        // 计算最小容量
         int minCapacity = (3 * expectedMaxSize)/2;
 
         // Compute the appropriate capacity
@@ -245,6 +260,7 @@ public class IdentityHashMap<K,V>
         if (minCapacity > MAXIMUM_CAPACITY || minCapacity < 0) {
             result = MAXIMUM_CAPACITY;
         } else {
+            // MINIMUM_CAPACITY = 4
             result = MINIMUM_CAPACITY;
             while (result < minCapacity)
                 result <<= 1;
@@ -256,13 +272,17 @@ public class IdentityHashMap<K,V>
      * Initializes object to be an empty map with the specified initial
      * capacity, which is assumed to be a power of two between
      * MINIMUM_CAPACITY and MAXIMUM_CAPACITY inclusive.
+     * 
+     * 初始化 IdentityHashMap 大小
      */
     private void init(int initCapacity) {
         // assert (initCapacity & -initCapacity) == initCapacity; // power of 2
         // assert initCapacity >= MINIMUM_CAPACITY;
         // assert initCapacity <= MAXIMUM_CAPACITY;
 
+        // 指定扩容阈值为初始化容量的三分之二，loadFactor = 2/3
         threshold = (initCapacity * 2)/3;
+        // 初始化哈希表数组为指定容量的 2 倍
         table = new Object[2 * initCapacity];
     }
 
@@ -275,6 +295,7 @@ public class IdentityHashMap<K,V>
      */
     public IdentityHashMap(Map<? extends K, ? extends V> m) {
         // Allow for a bit of growth
+        // 少量容量增长
         this((int) ((1 + m.size()) * 1.1));
         putAll(m);
     }
@@ -301,8 +322,11 @@ public class IdentityHashMap<K,V>
 
     /**
      * Returns index for Object x.
+     * 
+     * 计算哈希码，计算出的哈希值直接是对应的桶位置
      */
     private static int hash(Object x, int length) {
+        // 此方法不管你是否重写了 hashCode() 方法都会返回对象的哈希值，重写了不会调用重写的 hashCode() 方法
         int h = System.identityHashCode(x);
         // Multiply by -127, and left-shift to use least bit as part of hash
         return ((h << 1) - (h << 8)) & (length - 1);
@@ -418,6 +442,8 @@ public class IdentityHashMap<K,V>
      * hash map.  If the map previously contained a mapping for the key, the
      * old value is replaced.
      *
+     * 添加键值对
+     * 
      * @param key the key with which the specified value is to be associated
      * @param value the value to be associated with the specified key
      * @return the previous value associated with <tt>key</tt>, or
@@ -429,13 +455,17 @@ public class IdentityHashMap<K,V>
      * @see     #containsKey(Object)
      */
     public V put(K key, V value) {
+        // key == null ? new Object() : key
         Object k = maskNull(key);
+        // 获取哈希表与哈希表大小
         Object[] tab = table;
         int len = tab.length;
+        // 计算哈希值，len 用于计算桶位置
         int i = hash(k, len);
 
         Object item;
-        while ( (item = tab[i]) != null) {
+        while ((item = tab[i]) != null) {
+            // key 相同
             if (item == k) {
                 @SuppressWarnings("unchecked")
                     V oldValue = (V) tab[i + 1];
@@ -497,6 +527,8 @@ public class IdentityHashMap<K,V>
      * These mappings will replace any mappings that this map had for
      * any of the keys currently in the specified map.
      *
+     * 在 IdentityHashMap 中添加指定 map 中的所有键值对
+     * 
      * @param m mappings to be stored in this map
      * @throws NullPointerException if the specified map is null
      */
@@ -504,9 +536,11 @@ public class IdentityHashMap<K,V>
         int n = m.size();
         if (n == 0)
             return;
+        // 当要添加的 map 容量大于扩容阈值时进行 rehash
         if (n > threshold) // conservatively pre-expand
             resize(capacity(n));
 
+        // 遍历添加键值对
         for (Entry<? extends K, ? extends V> e : m.entrySet())
             put(e.getKey(), e.getValue());
     }

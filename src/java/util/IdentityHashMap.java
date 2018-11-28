@@ -152,6 +152,7 @@ public class IdentityHashMap<K,V>
      * MUST be a power of two <= 1<<29.
      * 
      * 最大的初始化容量， HashMap 最大容量为 1 << 30
+     * TODO 知道这里为什么最大容量与 HashMap 中不一致吗？因为它一半空间给 key 用，一半空间给 value 用
      */
     private static final int MAXIMUM_CAPACITY = 1 << 29;
 
@@ -336,7 +337,7 @@ public class IdentityHashMap<K,V>
     /**
      * Circularly traverses table of size len.
      *
-     * 计算 key 的角标，需要跳过中间的 value
+     * 计算 key 的角标，需要跳过中间的 value，当超过数组长度时从 0 开始接着循环
      */
     private static int nextKeyIndex(int i, int len) {
         return (i + 2 < len ? i + 2 : 0);
@@ -385,6 +386,8 @@ public class IdentityHashMap<K,V>
      * Tests whether the specified object reference is a key in this identity
      * hash map.
      *
+     * 判断是否包含某个 key 值，并返回 true/false
+     *
      * @param   key   possible key
      * @return  <code>true</code> if the specified object reference is a key
      *          in this map
@@ -394,6 +397,7 @@ public class IdentityHashMap<K,V>
         Object k = maskNull(key);
         Object[] tab = table;
         int len = tab.length;
+        // 计算出桶位置
         int i = hash(k, len);
         while (true) {
             Object item = tab[i];
@@ -401,6 +405,7 @@ public class IdentityHashMap<K,V>
                 return true;
             if (item == null)
                 return false;
+            // 更改角标位置接着遍历
             i = nextKeyIndex(i, len);
         }
     }
@@ -409,6 +414,8 @@ public class IdentityHashMap<K,V>
      * Tests whether the specified object reference is a value in this identity
      * hash map.
      *
+     * 判断是否包含指定的 value
+     *
      * @param value value whose presence in this map is to be tested
      * @return <tt>true</tt> if this map maps one or more keys to the
      *         specified object reference
@@ -416,7 +423,9 @@ public class IdentityHashMap<K,V>
      */
     public boolean containsValue(Object value) {
         Object[] tab = table;
+        // 角标从 1 开始，每次迭代 2
         for (int i = 1; i < tab.length; i += 2)
+            // 如果 value 相同且键不为 null，返回 true
             if (tab[i] == value && tab[i - 1] != null)
                 return true;
 
@@ -425,6 +434,8 @@ public class IdentityHashMap<K,V>
 
     /**
      * Tests if the specified key-value mapping is in the map.
+     *
+     * 判断是否包含指定的键值对
      *
      * @param   key   possible key
      * @param   value possible value
@@ -435,9 +446,11 @@ public class IdentityHashMap<K,V>
         Object k = maskNull(key);
         Object[] tab = table;
         int len = tab.length;
+        // 计算出桶位置，看到这里其实已经没什么好看的了 ......
         int i = hash(k, len);
         while (true) {
             Object item = tab[i];
+            // key 相同是返回 value 的判断
             if (item == k)
                 return tab[i + 1] == value;
             if (item == null)
@@ -576,6 +589,8 @@ public class IdentityHashMap<K,V>
     /**
      * Removes the mapping for this key from this map if present.
      *
+     * 相同的思路，根据 key 计算出对应的角标，从计算出的桶位置开始查找，找到后置 null 接着删除
+     *
      * @param key key whose mapping is to be removed from the map
      * @return the previous value associated with <tt>key</tt>, or
      *         <tt>null</tt> if there was no mapping for <tt>key</tt>.
@@ -595,8 +610,10 @@ public class IdentityHashMap<K,V>
                 size--;
                 @SuppressWarnings("unchecked")
                     V oldValue = (V) tab[i + 1];
+                // 把 key 和 value 置 null，让 GC 回收
                 tab[i + 1] = null;
                 tab[i] = null;
+                // 调整哈希表
                 closeDeletion(i);
                 return oldValue;
             }
@@ -609,6 +626,8 @@ public class IdentityHashMap<K,V>
 
     /**
      * Removes the specified key-value mapping from the map if it is present.
+     *
+     * 根据指定键值对移除
      *
      * @param   key   possible key
      * @param   value possible value
@@ -624,6 +643,7 @@ public class IdentityHashMap<K,V>
         while (true) {
             Object item = tab[i];
             if (item == k) {
+                // key 相同，value 不同，直接返回 false
                 if (tab[i + 1] != value)
                     return false;
                 modCount++;
@@ -644,6 +664,9 @@ public class IdentityHashMap<K,V>
      * deletion. This preserves the linear-probe
      * collision properties required by get, put, etc.
      *
+     * 每当删除一个键值对时都需要对删除后的哈希表进行调整
+     * 因为并不一定把键值对存储在根据 key 计算出的桶位置上（如果该位置已经存在键值对，就需要向后移动）
+     *
      * @param d the index of a newly empty deleted slot
      */
     private void closeDeletion(int d) {
@@ -656,6 +679,10 @@ public class IdentityHashMap<K,V>
         // and continuing until a null slot is seen, indicating
         // the end of a run of possibly-colliding keys.
         Object item;
+        /**
+         * 因为移除的键值对的角标并不一定是其哈希值算出的桶位置（线性探测，向后移动或从 0 开始） ，所以需要对哈希表进行调整
+         * 注意这里当判断 key 为 null 后直接结束了循环
+         */
         for (int i = nextKeyIndex(d, len); (item = tab[i]) != null;
              i = nextKeyIndex(i, len) ) {
             // The following test triggers if the item at slot i (which
@@ -664,12 +691,22 @@ public class IdentityHashMap<K,V>
             // newly vacated i.  This process will terminate when we hit
             // the null slot at the end of this run.
             // The test is messy because we are using a circular table.
+            // 当前桶位置计算出 key 的哈希值，这个哈希值并不一定等于 i
             int r = hash(item, len);
+            /**
+             * r：理想的存放位置（计算哈希值直接插入数据，不移动）
+             * i：实际存放位置（可能移动，它的位置被占，只能向后移动，甚至可能移动到最前面）
+             * i == r：最佳存放位置
+             * TODO 这里理解的不是很好
+             */
             if ((i < r && (r <= d || d <= i)) || (r <= d && d <= i)) {
+                // 把后面的键值对移动到前面去
                 tab[d] = item;
                 tab[d + 1] = tab[i + 1];
+                // 移动后置 null
                 tab[i] = null;
                 tab[i + 1] = null;
+                // 重置 d，以便处理后续的键值对
                 d = i;
             }
         }
@@ -682,8 +719,10 @@ public class IdentityHashMap<K,V>
     public void clear() {
         modCount++;
         Object[] tab = table;
+        // 从 0 开始循环遍历所有键和值，置 null，简单粗暴
         for (int i = 0; i < tab.length; i++)
             tab[i] = null;
+        // size 置 0
         size = 0;
     }
 

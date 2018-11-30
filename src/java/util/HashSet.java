@@ -1,22 +1,6 @@
 /*
- * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
- * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
+ * PS：
+ * 底层都是 HashMap 的方法，没有什么看头
  *
  *
  *
@@ -92,14 +76,22 @@ public class HashSet<E>
 {
     static final long serialVersionUID = -5024744406713321676L;
 
+    /**
+     * 底层数据结构，HashMap
+     */
     private transient HashMap<E,Object> map;
 
     // Dummy value to associate with an Object in the backing Map
+    /**
+     * map value 值，是一个 Object 对象
+     */
     private static final Object PRESENT = new Object();
 
     /**
      * Constructs a new, empty set; the backing <tt>HashMap</tt> instance has
      * default initial capacity (16) and load factor (0.75).
+     *
+     * 偷梁换柱，底层是一个 HashMap，默认初始容量 16，哈希因子 0.75
      */
     public HashSet() {
         map = new HashMap<>();
@@ -115,13 +107,17 @@ public class HashSet<E>
      * @throws NullPointerException if the specified collection is null
      */
     public HashSet(Collection<? extends E> c) {
+        // 初始化 HashMap 容量
         map = new HashMap<>(Math.max((int) (c.size()/.75f) + 1, 16));
+        // 底层通过循环调用 add 方法
         addAll(c);
     }
 
     /**
      * Constructs a new, empty set; the backing <tt>HashMap</tt> instance has
      * the specified initial capacity and the specified load factor.
+     *
+     * 创建一个可以指定 HashMap 初始容量与哈希因子的构造函数，nice~
      *
      * @param      initialCapacity   the initial capacity of the hash map
      * @param      loadFactor        the load factor of the hash map
@@ -165,6 +161,8 @@ public class HashSet<E>
      * Returns an iterator over the elements in this set.  The elements
      * are returned in no particular order.
      *
+     * 获取迭代器，返回的是 map key 的迭代器
+     *
      * @return an Iterator over the elements in this set
      * @see ConcurrentModificationException
      */
@@ -175,6 +173,7 @@ public class HashSet<E>
     /**
      * Returns the number of elements in this set (its cardinality).
      *
+     * size 是 HashMap 的大小
      * @return the number of elements in this set (its cardinality)
      */
     public int size() {
@@ -183,6 +182,8 @@ public class HashSet<E>
 
     /**
      * Returns <tt>true</tt> if this set contains no elements.
+     *
+     * 判断是否为空
      *
      * @return <tt>true</tt> if this set contains no elements
      */
@@ -195,6 +196,8 @@ public class HashSet<E>
      * More formally, returns <tt>true</tt> if and only if this set
      * contains an element <tt>e</tt> such that
      * <tt>(o==null&nbsp;?&nbsp;e==null&nbsp;:&nbsp;o.equals(e))</tt>.
+     *
+     * 判断是否包含某个值
      *
      * @param o element whose presence in this set is to be tested
      * @return <tt>true</tt> if this set contains the specified element

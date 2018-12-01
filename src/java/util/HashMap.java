@@ -764,6 +764,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         int oldCap = (oldTab == null) ? 0 : oldTab.length;
         int oldThr = threshold;
         int newCap, newThr = 0;
+        // 哈希表已存在
         if (oldCap > 0) {
             // 如果哈希表容量已达最大值，不进行扩容，并把阈值置为 0x7fffffff，防止再次调用扩容函数
             if (oldCap >= MAXIMUM_CAPACITY) {
@@ -777,6 +778,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                 newThr = oldThr << 1; // double threshold
         }
         // TODO 为什么把新哈希表容量置为老的扩容阈值？
+        // 如果执行下面的代码，表示哈希表还没有初始化，在没有初始化的时候 threshold 为哈希表初始容量大小，这样就可以理解了，biu~
         else if (oldThr > 0) // initial capacity was placed in threshold
             newCap = oldThr;
         // 初始化哈希表，初始化容量为 16，阈值为 0.75 * 16

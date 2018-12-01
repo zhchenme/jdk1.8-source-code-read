@@ -115,6 +115,11 @@ package java.util;
  * @since   1.4
  */
 
+/**
+ * 继承自 HashSet...
+ *
+ * @param <E>
+ */
 public class LinkedHashSet<E>
     extends HashSet<E>
     implements Set<E>, Cloneable, java.io.Serializable {

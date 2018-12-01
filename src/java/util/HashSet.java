@@ -146,6 +146,8 @@ public class HashSet<E>
      * HashMap instance is a LinkedHashMap with the specified initial
      * capacity and the specified load factor.
      *
+     * LinkedHashSet 原理使用该构造函数，底层是一个 LinkedHashMap
+     *
      * @param      initialCapacity   the initial capacity of the hash map
      * @param      loadFactor        the load factor of the hash map
      * @param      dummy             ignored (distinguishes this

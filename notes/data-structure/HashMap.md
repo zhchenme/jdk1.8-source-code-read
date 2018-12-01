@@ -1,10 +1,68 @@
-### 一、需要注意的知识点
+### 一、知识点梳理
 
 - `HashMap` 的初始化是通过 `resize()` 方法完成的，一般在构造函数中初始化加载因子，在 `resize()` 方法中初始化默认大小与扩容阈值
 - 在扩容时处理链表并非处理单个节点，而是整个桶位置上的所有节点一同处理
 - 链表转成树（哈希表容量达到 64 个，链表长度 8 个）的过程是先把所有链表节点转成树节点，然后再进行树化
 - `resize()` 方法中，在对原哈希表扩容（容量与扩容阈值翻倍）之后，进行了一次判断 `(oldThr > 0)`，然后执行了 `newCap = oldThr`，想不明白这一步有什么作用？
-- 其他想到再补充
+- 线程安全性与红黑树先占个坑
+
+对于上面的疑问，i know why.上代码，下面是 `resize()` 方法中有疑问的地方：
+
+``` java
+        // 哈希表已存在
+        if (oldCap > 0) {
+            // 如果哈希表容量已达最大值，不进行扩容，并把阈值置为 0x7fffffff，防止再次调用扩容函数
+            if (oldCap >= MAXIMUM_CAPACITY) {
+                threshold = Integer.MAX_VALUE;
+                return oldTab;
+            }
+            // 新容量为原来数组大小的两倍
+            else if ((newCap = oldCap << 1) < MAXIMUM_CAPACITY &&
+                     oldCap >= DEFAULT_INITIAL_CAPACITY)
+                // 把新的扩容阈值也扩大为两倍
+                newThr = oldThr << 1; // double threshold
+        }
+        // TODO 为什么把新哈希表容量置为老的扩容阈值？
+        // 哈希表不存在，哈希表还没有初始化
+        else if (oldThr > 0) // initial capacity was placed in threshold
+            newCap = oldThr;
+        // 初始化哈希表，初始化容量为 16，阈值为 0.75 * 16
+        else {               // zero initial threshold signifies using defaults
+            newCap = DEFAULT_INITIAL_CAPACITY;
+            newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
+        }
+```
+
+在没有初始化哈希表的时候，`threshold` 并不是扩容阈值，而是哈希表初始容量大小，可以在 `threshold` 的注释中对应这句话，光说没有说服力，下面看代码
+
+``` java 
+    public HashMap(int initialCapacity, float loadFactor) {
+        if (initialCapacity < 0)
+            throw new IllegalArgumentException("Illegal initial capacity: " +
+                                               initialCapacity);
+        if (initialCapacity > MAXIMUM_CAPACITY)
+            initialCapacity = MAXIMUM_CAPACITY;
+        if (loadFactor <= 0 || Float.isNaN(loadFactor))
+            throw new IllegalArgumentException("Illegal load factor: " +
+                                               loadFactor);
+        this.loadFactor = loadFactor;
+        this.threshold = tableSizeFor(initialCapacity);
+    }
+```
+上面是 `HashMap` 的一个构造函数，可以看到调用了 `tableSizeFor(initialCapacity)` 方法初始化 `threshold`，下面接着看
+
+``` java
+    static final int tableSizeFor(int cap) {
+        int n = cap - 1;
+        n |= n >>> 1;
+        n |= n >>> 2;
+        n |= n >>> 4;
+        n |= n >>> 8;
+        n |= n >>> 16;
+        return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
+    }
+```
+上面的方法用于返回大于 `cap` 的最小的 2 的幂，也就是哈希表初始容量大小。bingo~
 
 ### 二、添加键值对执行过程
 
@@ -85,6 +143,7 @@ show me the code ...
         int oldCap = (oldTab == null) ? 0 : oldTab.length;
         int oldThr = threshold;
         int newCap, newThr = 0;
+        // 哈希表已存在
         if (oldCap > 0) {
             // 如果哈希表容量已达最大值，不进行扩容，并把阈值置为 0x7fffffff，防止再次调用扩容函数
             if (oldCap >= MAXIMUM_CAPACITY) {
@@ -98,6 +157,7 @@ show me the code ...
                 newThr = oldThr << 1; // double threshold
         }
         // TODO 为什么把新哈希表容量置为老的扩容阈值？
+        // 如果执行下面的代码，表示哈希表还没有初始化，在没有初始化的时候 threshold 为哈希表初始容量大小，这样就可以理解了，biu~
         else if (oldThr > 0) // initial capacity was placed in threshold
             newCap = oldThr;
         // 初始化哈希表，初始化容量为 16，阈值为 0.75 * 16

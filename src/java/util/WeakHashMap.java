@@ -174,6 +174,8 @@ public class WeakHashMap<K,V>
      */
     private final float loadFactor;
 
+    /* 上面的属性就不赘述了，与 HashMap 类似*/
+
     /**
      * Reference queue for cleared WeakEntries
      */
@@ -190,6 +192,12 @@ public class WeakHashMap<K,V>
      */
     int modCount;
 
+    /**
+     * 创建一个大小为 n 的 Entry 数组
+     *
+     * @param n
+     * @return
+     */
     @SuppressWarnings("unchecked")
     private Entry<K,V>[] newTable(int n) {
         return (Entry<K,V>[]) new Entry<?,?>[n];
@@ -199,26 +207,36 @@ public class WeakHashMap<K,V>
      * Constructs a new, empty <tt>WeakHashMap</tt> with the given initial
      * capacity and the given load factor.
      *
+     * 关键的一个构造函数
+     *
      * @param  initialCapacity The initial capacity of the <tt>WeakHashMap</tt>
      * @param  loadFactor      The load factor of the <tt>WeakHashMap</tt>
      * @throws IllegalArgumentException if the initial capacity is negative,
      *         or if the load factor is nonpositive.
      */
     public WeakHashMap(int initialCapacity, float loadFactor) {
+        // 容量判断
         if (initialCapacity < 0)
             throw new IllegalArgumentException("Illegal Initial Capacity: "+
                                                initialCapacity);
         if (initialCapacity > MAXIMUM_CAPACITY)
             initialCapacity = MAXIMUM_CAPACITY;
 
+        // 加载因子判断
         if (loadFactor <= 0 || Float.isNaN(loadFactor))
             throw new IllegalArgumentException("Illegal Load factor: "+
                                                loadFactor);
         int capacity = 1;
+        /**
+         * 通过循环判断的形式初始化哈希表容量，capacity 为大于 initialCapacity 的最小的 2 的幂
+         * 计算初始容量的时候，与 HashMap 是完全不同的，HashMap 是调用 tableSizeFor(int cap) 方法
+         */
         while (capacity < initialCapacity)
             capacity <<= 1;
+        // 初始化哈希表
         table = newTable(capacity);
         this.loadFactor = loadFactor;
+        // 初始化扩容阈值，与 HashMap 也是不同的，注意区分
         threshold = (int)(capacity * loadFactor);
     }
 

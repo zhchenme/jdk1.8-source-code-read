@@ -171,6 +171,7 @@ public class WeakHashMap<K,V>
 
     /**
      * The load factor for the hash table.
+     * 这个扩容阈值就只是简单的扩容阈值了，在哈希表没有初始化时不再表示默认的哈希表容量
      */
     private final float loadFactor;
 
@@ -207,7 +208,7 @@ public class WeakHashMap<K,V>
      * Constructs a new, empty <tt>WeakHashMap</tt> with the given initial
      * capacity and the given load factor.
      *
-     * 关键的一个构造函数
+     * 关键的一个构造函数，与 HashMap 不同，WeakHashMap 会直接在构造函数中初始化哈希表
      *
      * @param  initialCapacity The initial capacity of the <tt>WeakHashMap</tt>
      * @param  loadFactor      The load factor of the <tt>WeakHashMap</tt>
@@ -254,6 +255,8 @@ public class WeakHashMap<K,V>
     /**
      * Constructs a new, empty <tt>WeakHashMap</tt> with the default initial
      * capacity (16) and load factor (0.75).
+     *
+     * 无参构造函数，使用默认的容量与加载因子
      */
     public WeakHashMap() {
         this(DEFAULT_INITIAL_CAPACITY, DEFAULT_LOAD_FACTOR);
@@ -280,11 +283,14 @@ public class WeakHashMap<K,V>
 
     /**
      * Value representing null keys inside tables.
+     * 允许 key 为 null 的情况 {@link IdentityHashMap}
      */
     private static final Object NULL_KEY = new Object();
 
     /**
      * Use NULL_KEY for key if it is null.
+     *
+     * key 判断，与 IdentityHashMap 中的 maskNull(Object key) 同
      */
     private static Object maskNull(Object key) {
         return (key == null) ? NULL_KEY : key;
@@ -300,6 +306,8 @@ public class WeakHashMap<K,V>
     /**
      * Checks for equality of non-null reference x and possibly-null y.  By
      * default uses Object.equals.
+     *
+     * 判断 x 与 y 是否相等
      */
     private static boolean eq(Object x, Object y) {
         return x == y || x.equals(y);
@@ -311,6 +319,8 @@ public class WeakHashMap<K,V>
      * critical because HashMap uses power-of-two length hash tables, that
      * otherwise encounter collisions for hashCodes that do not differ
      * in lower bits.
+     *
+     * 哈希函数
      */
     final int hash(Object k) {
         int h = k.hashCode();
@@ -324,6 +334,7 @@ public class WeakHashMap<K,V>
 
     /**
      * Returns index for hash code h.
+     * 根据 key 的哈希值计算桶位置
      */
     private static int indexFor(int h, int length) {
         return h & (length-1);
@@ -332,6 +343,7 @@ public class WeakHashMap<K,V>
     /**
      * Expunges stale entries from the table.
      */
+    // TODO
     private void expungeStaleEntries() {
         for (Object x; (x = queue.poll()) != null; ) {
             synchronized (queue) {
@@ -455,6 +467,8 @@ public class WeakHashMap<K,V>
      * If the map previously contained a mapping for this key, the old
      * value is replaced.
      *
+     * 向哈希表中添加键值对
+     *
      * @param key key with which the specified value is to be associated.
      * @param value value to be associated with the specified key.
      * @return the previous value associated with <tt>key</tt>, or
@@ -464,11 +478,19 @@ public class WeakHashMap<K,V>
      */
     public V put(K key, V value) {
         Object k = maskNull(key);
+        // 计算 key 的哈希值
         int h = hash(k);
+        // 获取哈希表
         Entry<K,V>[] tab = getTable();
+        // 当前 key 桶位置
         int i = indexFor(h, tab.length);
 
         for (Entry<K,V> e = tab[i]; e != null; e = e.next) {
+            /**
+             * e.get() 用于返回引用，如果该引用对象已被程序或垃圾收集器清除，此方法返回 null
+             * eq(k, e.get()) 用于判断 key 与引用
+             */
+            // key 存在，value 覆盖
             if (h == e.hash && eq(k, e.get())) {
                 V oldValue = e.value;
                 if (value != oldValue)
@@ -478,8 +500,11 @@ public class WeakHashMap<K,V>
         }
 
         modCount++;
+        // key 不存在
         Entry<K,V> e = tab[i];
+        // TODO 头插法？
         tab[i] = new Entry<>(k, value, queue, h, e);
+        // size ++，并判断是否需要扩容，扩容为原哈希表的 2 倍
         if (++size >= threshold)
             resize(tab.length * 2);
         return null;
@@ -499,6 +524,7 @@ public class WeakHashMap<K,V>
      *        capacity is MAXIMUM_CAPACITY (in which case value
      *        is irrelevant).
      */
+    // TODO
     void resize(int newCapacity) {
         Entry<K,V>[] oldTable = getTable();
         int oldCapacity = oldTable.length;
@@ -552,10 +578,13 @@ public class WeakHashMap<K,V>
      * These mappings will replace any mappings that this map had for any
      * of the keys currently in the specified map.
      *
+     * 该方法只在 WeakHashMap 的构造函数中使用过一次
+     *
      * @param m mappings to be stored in this map.
      * @throws  NullPointerException if the specified map is null.
      */
     public void putAll(Map<? extends K, ? extends V> m) {
+        // 获取 m 键值对总数
         int numKeysToBeAdded = m.size();
         if (numKeysToBeAdded == 0)
             return;
@@ -569,17 +598,22 @@ public class WeakHashMap<K,V>
          * By using the conservative calculation, we subject ourself
          * to at most one extra resize.
          */
+        // 扩容
         if (numKeysToBeAdded > threshold) {
+            // 根据阈值计算容量大小，并加 1，保证一定可以存储下所有键值对
             int targetCapacity = (int)(numKeysToBeAdded / loadFactor + 1);
             if (targetCapacity > MAXIMUM_CAPACITY)
                 targetCapacity = MAXIMUM_CAPACITY;
             int newCapacity = table.length;
+            // 获取大于 targetCapacity 的最小的 2 的幂
             while (newCapacity < targetCapacity)
                 newCapacity <<= 1;
+            // TODO 为什么要 rehash，不直接赋值新的数组
             if (newCapacity > table.length)
                 resize(newCapacity);
         }
 
+        // 添加键值对
         for (Map.Entry<? extends K, ? extends V> e : m.entrySet())
             put(e.getKey(), e.getValue());
     }

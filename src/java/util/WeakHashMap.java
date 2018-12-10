@@ -179,6 +179,8 @@ public class WeakHashMap<K,V>
 
     /**
      * Reference queue for cleared WeakEntries
+     *
+     * 清除若引用键值对的队列
      */
     private final ReferenceQueue<Object> queue = new ReferenceQueue<>();
 
@@ -342,13 +344,17 @@ public class WeakHashMap<K,V>
 
     /**
      * Expunges stale entries from the table.
+     *
+     * 从哈希表中删除过期的数据（被 GC 回收）
      */
     // TODO
     private void expungeStaleEntries() {
         for (Object x; (x = queue.poll()) != null; ) {
+            // TODO 同步处理
             synchronized (queue) {
                 @SuppressWarnings("unchecked")
                     Entry<K,V> e = (Entry<K,V>) x;
+                // 计算出桶位置
                 int i = indexFor(e.hash, table.length);
 
                 Entry<K,V> prev = table[i];
@@ -375,6 +381,7 @@ public class WeakHashMap<K,V>
 
     /**
      * Returns the table after first expunging stale entries.
+     * 获取哈希表
      */
     private Entry<K,V>[] getTable() {
         expungeStaleEntries();
@@ -419,14 +426,21 @@ public class WeakHashMap<K,V>
      * The {@link #containsKey containsKey} operation may be used to
      * distinguish these two cases.
      *
+     * 根据 key 获取键值对
+     *
      * @see #put(Object, Object)
      */
     public V get(Object key) {
+        // null key 处理
         Object k = maskNull(key);
         int h = hash(k);
+        // 获取哈希表
         Entry<K,V>[] tab = getTable();
+        // 计算桶位置
         int index = indexFor(h, tab.length);
+        // 获取当前桶位置上的链表
         Entry<K,V> e = tab[index];
+        // 遍历链表查找
         while (e != null) {
             if (e.hash == h && eq(k, e.get()))
                 return e.value;
@@ -502,7 +516,7 @@ public class WeakHashMap<K,V>
         modCount++;
         // key 不存在
         Entry<K,V> e = tab[i];
-        // TODO 头插法？
+        // 头插法插入新键值对
         tab[i] = new Entry<>(k, value, queue, h, e);
         // size ++，并判断是否需要扩容，扩容为原哈希表的 2 倍
         if (++size >= threshold)
@@ -750,6 +764,9 @@ public class WeakHashMap<K,V>
     /**
      * The entries in this hash table extend WeakReference, using its main ref
      * field as the key.
+     *
+     * 内部数据结构，继承自 WeakReference
+     * 若引用描述的对象只能生存到下一次垃圾收集器之前，当垃圾收集器工作时，无论是否足够都会回收被弱引用关联的对象
      */
     private static class Entry<K,V> extends WeakReference<Object> implements Map.Entry<K,V> {
         V value;

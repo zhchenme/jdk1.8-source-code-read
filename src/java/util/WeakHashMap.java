@@ -681,29 +681,40 @@ public class WeakHashMap<K,V>
      * <p>The map will not contain a mapping for the specified key once the
      * call returns.
      *
+     * 根据 key 移除键值对
+     *
      * @param key key whose mapping is to be removed from the map
      * @return the previous value associated with <tt>key</tt>, or
      *         <tt>null</tt> if there was no mapping for <tt>key</tt>
      */
     public V remove(Object key) {
+        // null key 判断并处理
         Object k = maskNull(key);
         int h = hash(k);
+        // 获取删除弱引用后的哈希表
         Entry<K,V>[] tab = getTable();
+        // 计算桶位置
         int i = indexFor(h, tab.length);
+        // 相当于两个标记互为犄角...
         Entry<K,V> prev = tab[i];
         Entry<K,V> e = prev;
 
         while (e != null) {
             Entry<K,V> next = e.next;
+            // 找到对应的 key
             if (h == e.hash && eq(k, e.get())) {
                 modCount++;
+                // 更新键值对数量
                 size--;
+                // 如果是头节点，把后一个节点置为头节点
                 if (prev == e)
                     tab[i] = next;
                 else
                     prev.next = next;
+                // 返回对应的 value
                 return e.value;
             }
+            // 重置节点，互为犄角...哈哈哈～ 把我看笑了...
             prev = e;
             e = next;
         }
@@ -744,10 +755,14 @@ public class WeakHashMap<K,V>
     /**
      * Removes all of the mappings from this map.
      * The map will be empty after this call returns.
+     *
+     * 清空所有的键值对
+     *
      */
     public void clear() {
         // clear out ref queue. We don't need to expunge entries
         // since table is getting cleared.
+        // 清除引用队列中的所有元素
         while (queue.poll() != null)
             ;
 
@@ -758,6 +773,7 @@ public class WeakHashMap<K,V>
         // Allocation of array may have caused GC, which may have caused
         // additional entries to go stale.  Removing these entries from the
         // reference queue will make them eligible for reclamation.
+        // TODO 不太懂..
         while (queue.poll() != null)
             ;
     }
@@ -766,14 +782,18 @@ public class WeakHashMap<K,V>
      * Returns <tt>true</tt> if this map maps one or more keys to the
      * specified value.
      *
+     * 判断是够包含指定的 value
+     *
      * @param value value whose presence in this map is to be tested
      * @return <tt>true</tt> if this map maps one or more keys to the
      *         specified value
      */
     public boolean containsValue(Object value) {
+        // value 为 null 特殊处理
         if (value==null)
             return containsNullValue();
 
+        // value 不为 null 的处理方式
         Entry<K,V>[] tab = getTable();
         for (int i = tab.length; i-- > 0;)
             for (Entry<K,V> e = tab[i]; e != null; e = e.next)
@@ -784,9 +804,11 @@ public class WeakHashMap<K,V>
 
     /**
      * Special-case code for containsValue with null argument
+     * 处理 value 为 null 的特例
      */
     private boolean containsNullValue() {
         Entry<K,V>[] tab = getTable();
+        // 遍历所有桶，然后遍历桶位置上的链表进行判断
         for (int i = tab.length; i-- > 0;)
             for (Entry<K,V> e = tab[i]; e != null; e = e.next)
                 if (e.value==null)

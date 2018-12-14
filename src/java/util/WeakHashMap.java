@@ -180,7 +180,7 @@ public class WeakHashMap<K,V>
     /**
      * Reference queue for cleared WeakEntries
      *
-     * 被清除的弱引用队列
+     * 被 GC 清除的弱引用队列，当执行 GC 时，会将被回收的 entry 放入到该队列中
      */
     private final ReferenceQueue<Object> queue = new ReferenceQueue<>();
 
@@ -357,7 +357,10 @@ public class WeakHashMap<K,V>
             synchronized (queue) {
                 @SuppressWarnings("unchecked")
                     Entry<K,V> e = (Entry<K,V>) x;
-                // TODO 计算出桶位置，e 是 entry 为什么计算的不是 key 的哈希值
+                /**
+                 * TODO 计算出桶位置，e 是 entry 为什么计算的不是 key 的哈希值
+                 * 原因是 WeakHashMap 的 key 是弱引用，在上一次 GC 发生时已经被回收，因此不能根据弱引用 key 计算哈希值
+                 */
                 int i = indexFor(e.hash, table.length);
 
                 // 获取哈希表的头节点

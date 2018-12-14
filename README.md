@@ -9,4 +9,6 @@
 [1.5 LinkedHashMap 概括](notes/data-structure/LinkedHashMap.md)<br>
 [1.6 IdentityHashMap 总结](notes/data-structure/IdentityHashMap.md)<br>
 [1.7 HashSet & LinkedHashSet...](notes/data-structure/HashSet-LinkedHashSet.md)<br>
+[1.8 WeakHashMap 源码分析](notes/data-structure/WeakHashMap.md)<br>
+
 

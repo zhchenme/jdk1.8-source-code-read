@@ -79,11 +79,20 @@ import java.util.function.Consumer;
  * @author Josh Bloch, Doug Lea
  * @param <E> the type of elements held in this collection
  */
+
+/**
+ * 底层数据结构是一个平衡二叉堆
+ * 
+ * @param <E>
+ */
 public class PriorityQueue<E> extends AbstractQueue<E>
     implements java.io.Serializable {
 
     private static final long serialVersionUID = -7720805057305804111L;
 
+    /**
+     * 优先队列的默认初始大小是 11
+     */
     private static final int DEFAULT_INITIAL_CAPACITY = 11;
 
     /**
@@ -93,6 +102,8 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * natural ordering, if comparator is null: For each node n in the
      * heap and each descendant d of n, n <= d.  The element with the
      * lowest value is in queue[0], assuming the queue is nonempty.
+     * 
+     * 底层数组
      */
     transient Object[] queue; // non-private to simplify nested class access
 
@@ -104,6 +115,8 @@ public class PriorityQueue<E> extends AbstractQueue<E>
     /**
      * The comparator, or null if priority queue uses elements'
      * natural ordering.
+     * 
+     * 比较器
      */
     private final Comparator<? super E> comparator;
 
@@ -139,6 +152,8 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * Creates a {@code PriorityQueue} with the default initial capacity and
      * whose elements are ordered according to the specified comparator.
      *
+     * 创建一个自定义比较器的优先队列
+     * 
      * @param  comparator the comparator that will be used to order this
      *         priority queue.  If {@code null}, the {@linkplain Comparable
      *         natural ordering} of the elements will be used.
@@ -177,6 +192,8 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * Otherwise, this priority queue will be ordered according to the
      * {@linkplain Comparable natural ordering} of its elements.
      *
+     * 向优先队列中添加指定集合中的所有元素
+     * 
      * @param  c the collection whose elements are to be placed
      *         into this priority queue
      * @throws ClassCastException if elements of the specified collection
@@ -187,6 +204,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      */
     @SuppressWarnings("unchecked")
     public PriorityQueue(Collection<? extends E> c) {
+        // 集合类型判断
         if (c instanceof SortedSet<?>) {
             SortedSet<? extends E> ss = (SortedSet<? extends E>) c;
             this.comparator = (Comparator<? super E>) ss.comparator();
@@ -251,16 +269,26 @@ public class PriorityQueue<E> extends AbstractQueue<E>
         }
     }
 
+    /**
+     * 根据指定的集合初始化优先队列
+     * 
+     * @param c
+     */
     private void initElementsFromCollection(Collection<? extends E> c) {
+        // 集合转数组
         Object[] a = c.toArray();
         // If c.toArray incorrectly doesn't return Object[], copy it.
+        // 数组转换判断
         if (a.getClass() != Object[].class)
             a = Arrays.copyOf(a, a.length, Object[].class);
+        // 集合大小
         int len = a.length;
         if (len == 1 || this.comparator != null)
+            // 遍历所有元素，不允许存储为 null 的元素
             for (int i = 0; i < len; i++)
                 if (a[i] == null)
                     throw new NullPointerException();
+        // 优先队列初始化
         this.queue = a;
         this.size = a.length;
     }
@@ -268,10 +296,13 @@ public class PriorityQueue<E> extends AbstractQueue<E>
     /**
      * Initializes queue array with elements from the given Collection.
      *
+     * 根据集合中的元素初始化优先队列
      * @param c the collection
      */
     private void initFromCollection(Collection<? extends E> c) {
+        // 初始化，此时元素还没有顺序
         initElementsFromCollection(c);
+        // 转二叉堆
         heapify();
     }
 
@@ -280,28 +311,41 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * Some VMs reserve some header words in an array.
      * Attempts to allocate larger arrays may result in
      * OutOfMemoryError: Requested array size exceeds VM limit
+     * 
+     * 最大容量限制
      */
     private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
 
     /**
      * Increases the capacity of the array.
+     * 
+     * 扩容机制
      *
      * @param minCapacity the desired minimum capacity
      */
     private void grow(int minCapacity) {
         int oldCapacity = queue.length;
         // Double size if small; else grow by 50%
+        // 当容量小于 64 时容量为原来的两倍 + 2，如果大于等于 64 时扩容为原来的 1.5 倍
         int newCapacity = oldCapacity + ((oldCapacity < 64) ?
                                          (oldCapacity + 2) :
                                          (oldCapacity >> 1));
         // overflow-conscious code
         if (newCapacity - MAX_ARRAY_SIZE > 0)
             newCapacity = hugeCapacity(minCapacity);
+        // 元素复制
         queue = Arrays.copyOf(queue, newCapacity);
     }
 
+    /**
+     * 大容量处理
+     * 
+     * @param minCapacity
+     * @return
+     */
     private static int hugeCapacity(int minCapacity) {
         if (minCapacity < 0) // overflow
+            // 超出最大容量限制时，定义为 Integer 的最大数
             throw new OutOfMemoryError();
         return (minCapacity > MAX_ARRAY_SIZE) ?
             Integer.MAX_VALUE :
@@ -324,6 +368,9 @@ public class PriorityQueue<E> extends AbstractQueue<E>
     /**
      * Inserts the specified element into this priority queue.
      *
+     * 向优先队列中插入元素
+     * TODO
+     * 
      * @return {@code true} (as specified by {@link Queue#offer})
      * @throws ClassCastException if the specified element cannot be
      *         compared with elements currently in this priority queue
@@ -683,6 +730,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * @param x the item to insert
      */
     private void siftDown(int k, E x) {
+        // 判断是否自定义了比较器
         if (comparator != null)
             siftDownUsingComparator(k, x);
         else
@@ -732,7 +780,9 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      */
     @SuppressWarnings("unchecked")
     private void heapify() {
+        // TODO size = 0 时？
         for (int i = (size >>> 1) - 1; i >= 0; i--)
+            // 在 i 位置插入元素 queue[i]
             siftDown(i, (E) queue[i]);
     }
 

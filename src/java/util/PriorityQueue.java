@@ -81,7 +81,7 @@ import java.util.function.Consumer;
  */
 
 /**
- * 底层数据结构是一个平衡二叉堆
+ * 底层数据结构是一个完全二叉树
  * 
  * @param <E>
  */
@@ -300,7 +300,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * @param c the collection
      */
     private void initFromCollection(Collection<? extends E> c) {
-        // 初始化，此时元素还没有顺序
+        // 初始化，此时元素还没有转成完全二叉树
         initElementsFromCollection(c);
         // 转二叉堆
         heapify();
@@ -331,6 +331,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
                                          (oldCapacity + 2) :
                                          (oldCapacity >> 1));
         // overflow-conscious code
+        // 当元素数量非常多时进行单独处理
         if (newCapacity - MAX_ARRAY_SIZE > 0)
             newCapacity = hugeCapacity(minCapacity);
         // 元素复制
@@ -369,7 +370,6 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * Inserts the specified element into this priority queue.
      *
      * 向优先队列中插入元素
-     * TODO
      * 
      * @return {@code true} (as specified by {@link Queue#offer})
      * @throws ClassCastException if the specified element cannot be
@@ -378,27 +378,45 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * @throws NullPointerException if the specified element is null
      */
     public boolean offer(E e) {
+        // 插入元素为 null，直接抛出异常
         if (e == null)
             throw new NullPointerException();
         modCount++;
+        // 记录优先队列中的元素个数，判断是否需要扩容
         int i = size;
+        // 当数组容量不够时进行扩容
         if (i >= queue.length)
             grow(i + 1);
+        // size + 1
         size = i + 1;
+        // 第一次插入元素
         if (i == 0)
             queue[0] = e;
         else
+            // 调整二叉堆
             siftUp(i, e);
         return true;
     }
 
+    /**
+     * 获取优先队列中的第一个元素
+     *
+     * @return
+     */
     @SuppressWarnings("unchecked")
     public E peek() {
         return (size == 0) ? null : (E) queue[0];
     }
 
+    /**
+     * 计算元素 o 在优先队列中的哪个位置，不存在返回 -1
+     *
+     * @param o
+     * @return
+     */
     private int indexOf(Object o) {
         if (o != null) {
+            // 遍历底层的数组逐个查找，返回第一次出现的位置
             for (int i = 0; i < size; i++)
                 if (o.equals(queue[i]))
                     return i;
@@ -414,14 +432,18 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * the specified element (or equivalently, if this queue changed as a
      * result of the call).
      *
+     * 移除元素 o，只会移除第一次出现的位置，如果有重复的并不会移除
+     *
      * @param o element to be removed from this queue, if present
      * @return {@code true} if this queue changed as a result of the call
      */
     public boolean remove(Object o) {
+        // 计算出元素 o 第一次出现的位置
         int i = indexOf(o);
         if (i == -1)
             return false;
         else {
+            // 移除 i 位置上的元素 o
             removeAt(i);
             return true;
         }
@@ -431,10 +453,13 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * Version of remove using reference equality, not equals.
      * Needed by iterator.remove.
      *
+     * 删除与指定元素引用相等（==）的元素
+     *
      * @param o element to be removed from this queue, if present
      * @return {@code true} if removed
      */
     boolean removeEq(Object o) {
+        // 逐个遍历，找到所在的位置进行删除
         for (int i = 0; i < size; i++) {
             if (o == queue[i]) {
                 removeAt(i);
@@ -448,6 +473,8 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * Returns {@code true} if this queue contains the specified element.
      * More formally, returns {@code true} if and only if this queue contains
      * at least one element {@code e} such that {@code o.equals(e)}.
+     *
+     * 判断是否包含某个指定的元素
      *
      * @param o object to be checked for containment in this queue
      * @return {@code true} if this queue contains the specified element
@@ -629,6 +656,11 @@ public class PriorityQueue<E> extends AbstractQueue<E>
         size = 0;
     }
 
+    /**
+     * 移除最小的元素（自定义比较器）
+     *
+     * @return
+     */
     @SuppressWarnings("unchecked")
     public E poll() {
         if (size == 0)
@@ -660,11 +692,15 @@ public class PriorityQueue<E> extends AbstractQueue<E>
         // assert i >= 0 && i < size;
         modCount++;
         int s = --size;
+        // 判断是否是最后一个元素
         if (s == i) // removed last element
             queue[i] = null;
         else {
+            // 记录最后一个元素
             E moved = (E) queue[s];
+            // 将最后一个元素置 null
             queue[s] = null;
+            // 向下调整元素
             siftDown(i, moved);
             if (queue[i] == moved) {
                 siftUp(i, moved);
@@ -688,31 +724,53 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * @param x the item to insert
      */
     private void siftUp(int k, E x) {
+        // 判断是否有自定义的比较器
         if (comparator != null)
             siftUpUsingComparator(k, x);
         else
             siftUpComparable(k, x);
     }
 
+    /**
+     * 使用自然排序插入元素，从下往上判断调整
+     *
+     * @param k 插入元素所在的位置
+     * @param x 要插入的元素
+     */
     @SuppressWarnings("unchecked")
     private void siftUpComparable(int k, E x) {
         Comparable<? super E> key = (Comparable<? super E>) x;
         while (k > 0) {
+            // 获取父节点位置
             int parent = (k - 1) >>> 1;
+            // 获取父节点元素
             Object e = queue[parent];
+            // 如果插入的元素大于父节点，结束循环
             if (key.compareTo((E) e) >= 0)
                 break;
+            // 如果插入的元素大于父节点元素，将父节点元素调整下来
             queue[k] = e;
+            // 记录父节点位置，继续向上判断调整
             k = parent;
         }
+        // 调整后将插入的元素放在对应的位置上
         queue[k] = key;
     }
 
+    /**
+     * 自定义比较器形式插入元素
+     *
+     * @param k
+     * @param x
+     */
     @SuppressWarnings("unchecked")
     private void siftUpUsingComparator(int k, E x) {
         while (k > 0) {
+            // 获取父节点位置
             int parent = (k - 1) >>> 1;
+            // 获取父节点元素值
             Object e = queue[parent];
+            // 通过自定义比较器比较父节点元素与插入的元素
             if (comparator.compare(x, (E) e) >= 0)
                 break;
             queue[k] = e;
@@ -737,16 +795,26 @@ public class PriorityQueue<E> extends AbstractQueue<E>
             siftDownComparable(k, x);
     }
 
+    /**
+     * 向下调整元素
+     *
+     * @param k 元素位置
+     * @param x 元素值
+     */
     @SuppressWarnings("unchecked")
     private void siftDownComparable(int k, E x) {
         Comparable<? super E> key = (Comparable<? super E>)x;
         int half = size >>> 1;        // loop while a non-leaf
         while (k < half) {
+            // 获取左孩子节点所在的位置
             int child = (k << 1) + 1; // assume left child is least
+            // 获取左孩子节点元素值
             Object c = queue[child];
+            // 右孩子节点所在位置
             int right = child + 1;
             if (right < size &&
                 ((Comparable<? super E>) c).compareTo((E) queue[right]) > 0)
+                // 记录左右孩子中最小的元素
                 c = queue[child = right];
             if (key.compareTo((E) c) <= 0)
                 break;

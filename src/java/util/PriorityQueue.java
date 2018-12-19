@@ -300,7 +300,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * @param c the collection
      */
     private void initFromCollection(Collection<? extends E> c) {
-        // 初始化，此时元素还没有转成完全二叉树
+        // 初始化，此时元素还没有转成完全二叉堆
         initElementsFromCollection(c);
         // 转二叉堆
         heapify();
@@ -453,7 +453,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * Version of remove using reference equality, not equals.
      * Needed by iterator.remove.
      *
-     * 删除与指定元素引用相等（==）的元素
+     * 删除与指定元素引用相等（==）的元素，只删除找到的第一个引用相同的元素
      *
      * @param o element to be removed from this queue, if present
      * @return {@code true} if removed
@@ -493,6 +493,8 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      *
      * <p>This method acts as bridge between array-based and collection-based
      * APIs.
+     *
+     * 转数组
      *
      * @return an array containing all of the elements in this queue
      */
@@ -641,6 +643,11 @@ public class PriorityQueue<E> extends AbstractQueue<E>
         }
     }
 
+    /**
+     * 返回优先队列中元素数量
+     *
+     * @return
+     */
     public int size() {
         return size;
     }
@@ -648,16 +655,19 @@ public class PriorityQueue<E> extends AbstractQueue<E>
     /**
      * Removes all of the elements from this priority queue.
      * The queue will be empty after this call returns.
+     *
+     * 清空优先队列中的所有元素
      */
     public void clear() {
         modCount++;
+        // 遍历底层数组，将元素置 null
         for (int i = 0; i < size; i++)
             queue[i] = null;
         size = 0;
     }
 
     /**
-     * 移除最小的元素（自定义比较器）
+     * 移除队首的元素
      *
      * @return
      */
@@ -665,12 +675,17 @@ public class PriorityQueue<E> extends AbstractQueue<E>
     public E poll() {
         if (size == 0)
             return null;
+        // size 减 1
         int s = --size;
         modCount++;
+        // 获取队首的元素
         E result = (E) queue[0];
+        // 获取队尾的元素（队首元素被移除，把队尾元素放在队首，从上往下调整二叉堆）
         E x = (E) queue[s];
+        // 队尾元素置 null
         queue[s] = null;
         if (s != 0)
+            // 调整二叉堆
             siftDown(0, x);
         return result;
     }
@@ -686,13 +701,17 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * that was previously at the end of the list and is now at some
      * position before i. This fact is used by iterator.remove so as to
      * avoid missing traversing elements.
+     *
+     * 删除指定位置的元素（因为最后一个元素会被移动到要删除的位置上，所以需要先向下调整，后面还需要判断是否需要向上调整）
+     *
+     * 短短几行代码，需要完全理解还是需要一定时间的...
      */
     @SuppressWarnings("unchecked")
     private E removeAt(int i) {
         // assert i >= 0 && i < size;
         modCount++;
         int s = --size;
-        // 判断是否是最后一个元素
+        // 判断是否是最后一个元素，如果是直接删除
         if (s == i) // removed last element
             queue[i] = null;
         else {
@@ -700,9 +719,11 @@ public class PriorityQueue<E> extends AbstractQueue<E>
             E moved = (E) queue[s];
             // 将最后一个元素置 null
             queue[s] = null;
-            // 向下调整元素
+            // 向下调整元素（将最后一个元素放在要删除的位置上）
             siftDown(i, moved);
+            // 如果最后一个元素调整到删除的位置上后并没有向下调整
             if (queue[i] == moved) {
+                // 继续向上调整
                 siftUp(i, moved);
                 if (queue[i] != moved)
                     return moved;
@@ -745,10 +766,10 @@ public class PriorityQueue<E> extends AbstractQueue<E>
             int parent = (k - 1) >>> 1;
             // 获取父节点元素
             Object e = queue[parent];
-            // 如果插入的元素大于父节点，结束循环
+            // 如果插入的元素大于父节点（构成小顶堆），结束循环
             if (key.compareTo((E) e) >= 0)
                 break;
-            // 如果插入的元素大于父节点元素，将父节点元素调整下来
+            // 如果插入的元素小于父节点元素，将父节点元素调整下来
             queue[k] = e;
             // 记录父节点位置，继续向上判断调整
             k = parent;
@@ -796,7 +817,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
     }
 
     /**
-     * 向下调整元素
+     * 向下调整元素（使用自然排序）
      *
      * @param k 元素位置
      * @param x 元素值
@@ -816,14 +837,24 @@ public class PriorityQueue<E> extends AbstractQueue<E>
                 ((Comparable<? super E>) c).compareTo((E) queue[right]) > 0)
                 // 记录左右孩子中最小的元素
                 c = queue[child = right];
+            // 如果父节点比两个孩子节点都要小，就结束循环
             if (key.compareTo((E) c) <= 0)
                 break;
+            // 把小的元素移到父节点的位置
             queue[k] = c;
+            // 记录孩子节点所在的位置，继续向下调整
             k = child;
         }
+        // 最终把父节点放在对应的位置上，使其保持一个二叉小顶堆
         queue[k] = key;
     }
 
+    /**
+     * 自定义比较器的调整二叉堆，同上
+     *
+     * @param k
+     * @param x
+     */
     @SuppressWarnings("unchecked")
     private void siftDownUsingComparator(int k, E x) {
         int half = size >>> 1;
@@ -848,7 +879,6 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      */
     @SuppressWarnings("unchecked")
     private void heapify() {
-        // TODO size = 0 时？
         for (int i = (size >>> 1) - 1; i >= 0; i--)
             // 在 i 位置插入元素 queue[i]
             siftDown(i, (E) queue[i]);

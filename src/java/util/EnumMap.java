@@ -25,6 +25,7 @@
 
 package java.util;
 
+// 保留这个无用的包，jdk 自带的 ……^_^
 import java.util.Map.Entry;
 import sun.misc.SharedSecrets;
 
@@ -82,12 +83,17 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
     /**
      * The <tt>Class</tt> object for the enum type of all the keys of this map.
      *
+     * key 类型
+     *
      * @serial
      */
     private final Class<K> keyType;
 
     /**
      * All of the values comprising K.  (Cached for performance.)
+     *
+     * key 数组
+     *
      */
     private transient K[] keyUniverse;
 
@@ -95,16 +101,22 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
      * Array representation of this map.  The ith element is the value
      * to which universe[i] is currently mapped, or null if it isn't
      * mapped to anything, or NULL if it's mapped to null.
+     *
+     * value 数组
      */
     private transient Object[] vals;
 
     /**
      * The number of mappings in this map.
+     *
+     * 键值对个数
      */
     private transient int size = 0;
 
     /**
      * Distinguished non-null value for representing null values.
+     *
+     * value 为 null 时对应的值
      */
     private static final Object NULL = new Object() {
         public int hashCode() {
@@ -116,15 +128,30 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
         }
     };
 
+    /**
+     * 获取 value 时做的判断
+     *
+     * @param value
+     * @return
+     */
     private Object maskNull(Object value) {
         return (value == null ? NULL : value);
     }
 
+    /**
+     * 获取 value 时做的判断
+     *
+     * @param value
+     * @return
+     */
     @SuppressWarnings("unchecked")
     private V unmaskNull(Object value) {
         return (V)(value == NULL ? null : value);
     }
 
+    /**
+     * 保留这个无用的编译器常量，jdk 自带的 ……^_^
+     */
     private static final Enum<?>[] ZERO_LENGTH_ENUM_ARRAY = new Enum<?>[0];
 
     /**
@@ -135,6 +162,7 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
      */
     public EnumMap(Class<K> keyType) {
         this.keyType = keyType;
+        // 初始化 key 数组，getKeyUniverse 方法会计算出枚举元素的总数，从而初始化 key 数组的大小
         keyUniverse = getKeyUniverse(keyType);
         vals = new Object[keyUniverse.length];
     }
@@ -187,6 +215,8 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
     /**
      * Returns the number of key-value mappings in this map.
      *
+     * 返回键值对的个数
+     *
      * @return the number of key-value mappings in this map
      */
     public int size() {
@@ -197,12 +227,16 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
      * Returns <tt>true</tt> if this map maps one or more keys to the
      * specified value.
      *
+     * 判断是否包含指定的 value
+     *
      * @param value the value whose presence in this map is to be tested
      * @return <tt>true</tt> if this map maps one or more keys to this value
      */
     public boolean containsValue(Object value) {
+        // value 判断，null 处理
         value = maskNull(value);
 
+        // 遍历 vals 数组进行查找
         for (Object val : vals)
             if (value.equals(val))
                 return true;
@@ -214,6 +248,9 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
      * Returns <tt>true</tt> if this map contains a mapping for the specified
      * key.
      *
+     * 判断是否包含某个 key
+     * TODO
+     *
      * @param key the key whose presence in this map is to be tested
      * @return <tt>true</tt> if this map contains a mapping for the specified
      *            key
@@ -222,7 +259,15 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
         return isValidKey(key) && vals[((Enum<?>)key).ordinal()] != null;
     }
 
+    /**
+     * 对 key 与 value 同时判断
+     *
+     * @param key
+     * @param value
+     * @return
+     */
     private boolean containsMapping(Object key, Object value) {
+        // 计算 key 的位置后在 vals 数组中查找对应的 value
         return isValidKey(key) &&
             maskNull(value).equals(vals[((Enum<?>)key).ordinal()]);
     }
@@ -235,6 +280,8 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
      * {@code k} to a value {@code v} such that {@code (key == k)},
      * then this method returns {@code v}; otherwise it returns
      * {@code null}.  (There can be at most one such mapping.)
+     *
+     * 根据 key 获取对应的 value
      *
      * <p>A return value of {@code null} does not <i>necessarily</i>
      * indicate that the map contains no mapping for the key; it's also
@@ -254,6 +301,8 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
      * If the map previously contained a mapping for this key, the old
      * value is replaced.
      *
+     * 添加键值对
+     *
      * @param key the key with which the specified value is to be associated
      * @param value the value to be associated with the specified key
      *
@@ -264,11 +313,16 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
      * @throws NullPointerException if the specified key is null
      */
     public V put(K key, V value) {
+        // key 类型检查
         typeCheck(key);
 
+        // 获得该 key 对应的位置
         int index = key.ordinal();
+        // 在 vals 数组中获取 key 角标对应的 value
         Object oldValue = vals[index];
+        // 覆盖或设置 value
         vals[index] = maskNull(value);
+        // 如果 key 对应的位置 value 为 null，则表示新插入了键值对，size++，反之表示值覆盖 size 不变
         if (oldValue == null)
             size++;
         return unmaskNull(oldValue);
@@ -277,6 +331,8 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
     /**
      * Removes the mapping for this key from this map if present.
      *
+     * 根据 key 移除键值对
+     *
      * @param key the key whose mapping is to be removed from the map
      * @return the previous value associated with specified key, or
      *     <tt>null</tt> if there was no entry for key.  (A <tt>null</tt>
@@ -284,20 +340,35 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
      *     <tt>null</tt> with the specified key.)
      */
     public V remove(Object key) {
+        // key 类型错误的时候直接返回 null
         if (!isValidKey(key))
             return null;
+        // 根据 key 计算出其在枚举中位置
         int index = ((Enum<?>)key).ordinal();
+        // 获取对应的 value
         Object oldValue = vals[index];
+        // value 置 null，下次 GC 回收
         vals[index] = null;
+        // 如果对应的 value 不为 null，如果添加键值对的时候 value 为 null，则存储的是 NULL（特殊处理后的编译期常量）
         if (oldValue != null)
             size--;
         return unmaskNull(oldValue);
     }
 
+    /**
+     * 根据键值对移除
+     *
+     * @param key
+     * @param value
+     * @return
+     */
     private boolean removeMapping(Object key, Object value) {
+        // key 类型检查
         if (!isValidKey(key))
             return false;
+        // 计算 key 在枚举中的位置
         int index = ((Enum<?>)key).ordinal();
+        // 在 vals 数组中找到对应的 value，判断 value 是否相同
         if (maskNull(value).equals(vals[index])) {
             vals[index] = null;
             size--;
@@ -309,6 +380,8 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
     /**
      * Returns true if key is of the proper type to be a key in this
      * enum map.
+     *
+     * key 检查，为 null 时返回 false，如果 key 不是 Enum 中的元素也返回 false
      */
     private boolean isValidKey(Object key) {
         if (key == null)
@@ -736,6 +809,8 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
 
     /**
      * Throws an exception if e is not of the correct type for this enum set.
+     *
+     * key 类型检查
      */
     private void typeCheck(K key) {
         Class<?> keyClass = key.getClass();
@@ -746,6 +821,8 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
     /**
      * Returns all of the values comprising K.
      * The result is uncloned, cached, and shared by all callers.
+     *
+     * 返回一个指定枚举类型的空数组
      */
     private static <K extends Enum<K>> K[] getKeyUniverse(Class<K> keyType) {
         return SharedSecrets.getJavaLangAccess()

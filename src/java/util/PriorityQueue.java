@@ -382,7 +382,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
         if (e == null)
             throw new NullPointerException();
         modCount++;
-        // 记录优先队列中的元素个数，判断是否需要扩容
+        // 记录优先队列中的元素个数（也是新元素的插入位置），判断是否需要扩容
         int i = size;
         // 当数组容量不够时进行扩容
         if (i >= queue.length)
@@ -722,6 +722,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
             // 向下调整元素（将最后一个元素放在要删除的位置上）
             siftDown(i, moved);
             // 如果最后一个元素调整到删除的位置上后并没有向下调整
+            // TODO ？
             if (queue[i] == moved) {
                 // 继续向上调整
                 siftUp(i, moved);

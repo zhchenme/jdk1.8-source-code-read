@@ -249,7 +249,7 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
      * key.
      *
      * 判断是否包含某个 key
-     * TODO
+     * 注意 value 为 null 的情况下，对应的 value 并不是 null，而是上面定义的特殊处理过的 NULL
      *
      * @param key the key whose presence in this map is to be tested
      * @return <tt>true</tt> if this map contains a mapping for the specified
@@ -405,7 +405,9 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
      */
     public void putAll(Map<? extends K, ? extends V> m) {
         if (m instanceof EnumMap) {
+            // 记录被添加的 map
             EnumMap<?, ?> em = (EnumMap<?, ?>)m;
+             // key 类型不对直接抛出异常
             if (em.keyType != keyType) {
                 if (em.isEmpty())
                     return;
@@ -414,7 +416,10 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
 
             for (int i = 0; i < keyUniverse.length; i++) {
                 Object emValue = em.vals[i];
+                // 如果 被添加的 map 中的第 i 个 value 不为 null，就添加到 map 中去
+                // PS：value 为 null 会被特殊处理，因此也是会被正确处理的
                 if (emValue != null) {
+                    // 如果 map 中不存在，表示新增 value，size ++
                     if (vals[i] == null)
                         size++;
                     vals[i] = emValue;
@@ -427,8 +432,11 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
 
     /**
      * Removes all mappings from this map.
+     *
+     * 清空 map
      */
     public void clear() {
+        // 只要将 value 数组置 null 即可
         Arrays.fill(vals, null);
         size = 0;
     }
@@ -448,6 +456,8 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
      * {@link Map#keySet()}.  The set's iterator will return the keys
      * in their natural order (the order in which the enum constants
      * are declared).
+     *
+     * 返回所有 key 的 set 集合
      *
      * @return a set view of the keys contained in this enum map
      */

@@ -38,6 +38,10 @@ class RegularEnumSet<E extends Enum<E>> extends EnumSet<E> {
     /**
      * Bit vector representation of this set.  The 2^k bit indicates the
      * presence of universe[k] in this set.
+     *
+     * 2^k 位元素位 1 表示有对应的枚举元素
+     *
+     * 该数的二进制如果比特位为 1，则表示有枚举类型元素
      */
     private long elements = 0L;
 
@@ -152,33 +156,45 @@ class RegularEnumSet<E extends Enum<E>> extends EnumSet<E> {
     /**
      * Adds the specified element to this set if it is not already present.
      *
+     * 添加枚举元素
+     *
      * @param e element to be added to this set
      * @return <tt>true</tt> if the set changed as a result of the call
      *
      * @throws NullPointerException if <tt>e</tt> is null
      */
     public boolean add(E e) {
+        // 类型检查
         typeCheck(e);
 
+        // 获取存储枚举元素的标记值（比特位存储了对应的枚举元素）
         long oldElements = elements;
+        // 通过 | 运算在比特位上追加新元素
         elements |= (1L << ((Enum<?>)e).ordinal());
+        // 如果枚举元素已经存在时，返回 false
         return elements != oldElements;
     }
 
     /**
      * Removes the specified element from this set if it is present.
      *
+     * 移除枚举元素
+     *
      * @param e element to be removed from this set, if present
      * @return <tt>true</tt> if the set contained the specified element
      */
     public boolean remove(Object e) {
+        // 如果为 null，直接返回 false
         if (e == null)
             return false;
         Class<?> eClass = e.getClass();
+        // 类型检查
         if (eClass != elementType && eClass.getSuperclass() != elementType)
             return false;
 
+        // 获取标记值
         long oldElements = elements;
+        // 将 remove 的元素对应的比特位上的 1 置 0
         elements &= ~(1L << ((Enum<?>)e).ordinal());
         return elements != oldElements;
     }

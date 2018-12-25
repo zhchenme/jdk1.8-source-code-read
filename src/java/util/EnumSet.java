@@ -1,26 +1,6 @@
 /*
- * Copyright (c) 2003, 2013, Oracle and/or its affiliates. All rights reserved.
- * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
+ * EnumSet 是一个很特殊的数据结构，底层的数据结构存储的并不是枚举元素，而是使用比特位来表示添加的元素，
+ * 如果新增了一个枚举元素，则根据其位置（假设 k）计算 1 << k 二进制位表示该枚举元素
  */
 
 package java.util;
@@ -82,16 +62,26 @@ public abstract class EnumSet<E extends Enum<E>> extends AbstractSet<E>
 {
     /**
      * The class of all the elements of this set.
+     *
+     * 元素类型
      */
     final Class<E> elementType;
 
     /**
      * All of the values comprising T.  (Cached for performance.)
+     *
+     * 底层枚举类型存储数据
      */
     final Enum<?>[] universe;
 
     private static Enum<?>[] ZERO_LENGTH_ENUM_ARRAY = new Enum<?>[0];
 
+    /**
+     * 构造函数
+     *
+     * @param elementType 枚举类型
+     * @param universe    枚举对象
+     */
     EnumSet(Class<E>elementType, Enum<?>[] universe) {
         this.elementType = elementType;
         this.universe    = universe;
@@ -100,6 +90,9 @@ public abstract class EnumSet<E extends Enum<E>> extends AbstractSet<E>
     /**
      * Creates an empty enum set with the specified element type.
      *
+     * 创建一个 EnumSet 不包含枚举类型的任何元素
+     * TODO 为什么没有元素
+     *
      * @param <E> The class of the elements in the set
      * @param elementType the class object of the element type for this enum
      *     set
@@ -107,10 +100,12 @@ public abstract class EnumSet<E extends Enum<E>> extends AbstractSet<E>
      * @throws NullPointerException if <tt>elementType</tt> is null
      */
     public static <E extends Enum<E>> EnumSet<E> noneOf(Class<E> elementType) {
+        // 此时 universe 包含所有的枚举值
         Enum<?>[] universe = getUniverse(elementType);
         if (universe == null)
             throw new ClassCastException(elementType + " not an enum");
 
+        // 根据枚举元素的大小判断初始化什么类型的 EnumSet 对象
         if (universe.length <= 64)
             return new RegularEnumSet<>(elementType, universe);
         else
@@ -401,6 +396,8 @@ public abstract class EnumSet<E extends Enum<E>> extends AbstractSet<E>
     /**
      * Returns all of the values comprising E.
      * The result is uncloned, cached, and shared by all callers.
+     *
+     * 返回传入枚举类型的所有元素的数组
      */
     private static <E extends Enum<E>> E[] getUniverse(Class<E> elementType) {
         return SharedSecrets.getJavaLangAccess()

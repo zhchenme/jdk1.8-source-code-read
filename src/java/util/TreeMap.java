@@ -2244,6 +2244,14 @@ public class TreeMap<K,V>
      * algorithms.
      */
 
+    /**
+     * 返回当前节点的颜色，为 null 时默认为黑色
+     *
+     * @param p
+     * @param <K>
+     * @param <V>
+     * @return
+     */
     private static <K,V> boolean colorOf(Entry<K,V> p) {
         return (p == null ? BLACK : p.color);
     }
@@ -2260,15 +2268,39 @@ public class TreeMap<K,V>
         return (p == null ? null: p.parent);
     }
 
+    /**
+     * 设置节点的颜色
+     *
+     * @param p
+     * @param c
+     * @param <K>
+     * @param <V>
+     */
     private static <K,V> void setColor(Entry<K,V> p, boolean c) {
         if (p != null)
             p.color = c;
     }
 
+    /**
+     * 返回当前节点的左孩子节点
+     *
+     * @param p
+     * @param <K>
+     * @param <V>
+     * @return
+     */
     private static <K,V> Entry<K,V> leftOf(Entry<K,V> p) {
         return (p == null) ? null: p.left;
     }
 
+    /**
+     * 返回当前节点的右孩子节点
+     *
+     * @param p
+     * @param <K>
+     * @param <V>
+     * @return
+     */
     private static <K,V> Entry<K,V> rightOf(Entry<K,V> p) {
         return (p == null) ? null: p.right;
     }
@@ -2334,14 +2366,24 @@ public class TreeMap<K,V>
         x.color = RED;
 
         while (x != null && x != root && x.parent.color == RED) {
+            // 当前节点的父节点（左孩子、有孩子）进行区分
             if (parentOf(x) == leftOf(parentOf(parentOf(x)))) {
+                // 获取当前父节点（左孩子）的兄弟节点（右孩子）
                 Entry<K,V> y = rightOf(parentOf(parentOf(x)));
+                /**
+                 * 当前节点父节点的兄弟节点颜色判断
+                 */
                 if (colorOf(y) == RED) {
+                    // 把当前接待你的父节点设为黑色
                     setColor(parentOf(x), BLACK);
+                    // 父节点的兄弟节点也设置为黑色
                     setColor(y, BLACK);
+                    // 把当前节点父节点的父节点设置为红色
                     setColor(parentOf(parentOf(x)), RED);
+                    // 重置节点 x，继续向上调整
                     x = parentOf(parentOf(x));
                 } else {
+                    // 当前节点左右孩子判断
                     if (x == rightOf(parentOf(x))) {
                         x = parentOf(x);
                         rotateLeft(x);

@@ -255,7 +255,7 @@ public class TreeMap<K,V>
      * @since 1.2
      */
     public boolean containsValue(Object value) {
-        // TODO getFirstEntry & successor function
+        // 获取最小的左孩子节点，然后从该节点开始一直遍历后继节点
         for (Entry<K,V> e = getFirstEntry(); e != null; e = successor(e))
             if (valEquals(value, e.value))
                 return true;
@@ -287,6 +287,7 @@ public class TreeMap<K,V>
      *         does not permit null keys
      */
     public V get(Object key) {
+        // 根据 key 获取到对应的 Entry
         Entry<K,V> p = getEntry(key);
         return (p==null ? null : p.value);
     }
@@ -387,6 +388,8 @@ public class TreeMap<K,V>
      * for performance. (This is not worth doing for most methods,
      * that are less dependent on comparator performance, but is
      * worthwhile here.)
+     *
+     * 自定义比较器情况下根据 key 获取对应的 value
      */
     final Entry<K,V> getEntryUsingComparator(Object key) {
         @SuppressWarnings("unchecked")
@@ -614,6 +617,7 @@ public class TreeMap<K,V>
         else
             parent.right = e;
         // 调整红黑树颜色
+        // TODO 重点也是难点...
         fixAfterInsertion(e);
             size++;
         modCount++;
@@ -622,6 +626,8 @@ public class TreeMap<K,V>
 
     /**
      * Removes the mapping for this key from this TreeMap if present.
+     *
+     * 根据 key 移除键值对
      *
      * @param  key key for which mapping should be removed
      * @return the previous value associated with {@code key}, or
@@ -635,11 +641,13 @@ public class TreeMap<K,V>
      *         does not permit null keys
      */
     public V remove(Object key) {
+        // 获取到对应的 Entry
         Entry<K,V> p = getEntry(key);
         if (p == null)
             return null;
 
         V oldValue = p.value;
+        // 删除该节点
         deleteEntry(p);
         return oldValue;
     }
@@ -647,10 +655,13 @@ public class TreeMap<K,V>
     /**
      * Removes all of the mappings from this map.
      * The map will be empty after this call returns.
+     *
+     * 清除所有键值对
      */
     public void clear() {
         modCount++;
         size = 0;
+        // 把根节点置 null
         root = null;
     }
 
@@ -703,6 +714,8 @@ public class TreeMap<K,V>
     }
 
     /**
+     * 移除最小的键值对并返回
+     *
      * @since 1.6
      */
     public Map.Entry<K,V> pollFirstEntry() {
@@ -1329,6 +1342,8 @@ public class TreeMap<K,V>
     /**
      * Test two values for equality.  Differs from o1.equals(o2) only in
      * that it copes with {@code null} o1 properly.
+     *
+     * 判断 o1 与 o2 是否相同，该方法用于比较 value
      */
     static final boolean valEquals(Object o1, Object o2) {
         return (o1==null ? o2==null : o1.equals(o2));
@@ -2186,7 +2201,7 @@ public class TreeMap<K,V>
     /**
      * Returns the successor of the specified Entry, or null if no such.
      *
-     * 返回当前 Entry 的后继节点
+     * 返回当前 Entry 的后继节点，非常绕...
      */
     static <K,V> TreeMap.Entry<K,V> successor(Entry<K,V> t) {
         if (t == null)
@@ -2203,9 +2218,12 @@ public class TreeMap<K,V>
             Entry<K,V> p = t.parent;
             // 记录当前节点
             Entry<K,V> ch = t;
-            // TODO 右节点？
+            // 获取父节点的右孩子节点，ch == p.right 用于判断是右孩子节点
+            // 如果是右节点一直向上查找，如果判断了不是右节点直接结束循转，该节点就是后继节点
             while (p != null && ch == p.right) {
+                // 记录父节点
                 ch = p;
+                // 重置父节点
                 p = p.parent;
             }
             return p;
@@ -2354,11 +2372,12 @@ public class TreeMap<K,V>
     }
 
     /**
-     * 调整红黑树颜色
+     * 插入元素后调整红黑树颜色
      *
      * 如果插入节点的父节点颜色是黑色，那么不需要调整颜色
      * RED：false，BLACK true
      *
+     * TODO 看晕了...
      * @param x
      */
     private void fixAfterInsertion(Entry<K,V> x) {
@@ -2410,11 +2429,14 @@ public class TreeMap<K,V>
                 }
             }
         }
+        // 根节点的颜色为黑色
         root.color = BLACK;
     }
 
     /**
      * Delete node p, and then rebalance the tree.
+     *
+     * 删除指定的节点，调整红黑树
      */
     private void deleteEntry(Entry<K,V> p) {
         modCount++;
@@ -2465,6 +2487,11 @@ public class TreeMap<K,V>
     }
 
     /** From CLR */
+    /**
+     * 删除键值对后调整红黑树颜色
+     *
+     * @param x
+     */
     private void fixAfterDeletion(Entry<K,V> x) {
         while (x != root && colorOf(x) == BLACK) {
             if (x == leftOf(parentOf(x))) {

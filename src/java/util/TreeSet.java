@@ -94,6 +94,8 @@ public class TreeSet<E> extends AbstractSet<E>
 {
     /**
      * The backing map.
+     * 
+     * 底层不是一个数组，而是一个 map
      */
     private transient NavigableMap<E,Object> m;
 
@@ -102,8 +104,11 @@ public class TreeSet<E> extends AbstractSet<E>
 
     /**
      * Constructs a set backed by the specified navigable map.
+     * 
+     * 基本的构造函数
      */
     TreeSet(NavigableMap<E,Object> m) {
+        // 初始化
         this.m = m;
     }
 
@@ -287,6 +292,8 @@ public class TreeSet<E> extends AbstractSet<E>
     /**
      * Adds all of the elements in the specified collection to this set.
      *
+     * 添加指定集合中的所有元素
+     * 
      * @param c collection containing elements to be added to this set
      * @return {@code true} if this set changed as a result of the call
      * @throws ClassCastException if the elements provided cannot be compared
@@ -301,6 +308,7 @@ public class TreeSet<E> extends AbstractSet<E>
             c instanceof SortedSet &&
             m instanceof TreeMap) {
             SortedSet<? extends E> set = (SortedSet<? extends E>) c;
+            // 将 m 转成 TreeMap
             TreeMap<E,Object> map = (TreeMap<E, Object>) m;
             Comparator<?> cc = set.comparator();
             Comparator<? super E> mc = map.comparator();

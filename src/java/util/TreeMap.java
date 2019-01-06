@@ -1231,6 +1231,8 @@ public class TreeMap<K,V>
 
     /**
      * Base class for TreeMap Iterators
+     * 
+     * 迭代器类
      */
     abstract class PrivateEntryIterator<T> implements Iterator<T> {
         Entry<K,V> next;
@@ -1247,12 +1249,18 @@ public class TreeMap<K,V>
             return next != null;
         }
 
+        /**
+         * 返回下后继节点
+         * 
+         * @return
+         */
         final Entry<K,V> nextEntry() {
             Entry<K,V> e = next;
             if (e == null)
                 throw new NoSuchElementException();
             if (modCount != expectedModCount)
                 throw new ConcurrentModificationException();
+            // 重置 next 为当前节点的后继节点
             next = successor(e);
             lastReturned = e;
             return e;

@@ -127,6 +127,8 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
 
     /**
      * Circularly decrement i.
+     *
+     * 自减
      */
     final int dec(int i) {
         return ((i == 0) ? items.length : i) - 1;
@@ -134,6 +136,8 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
 
     /**
      * Returns item at index i.
+     *
+     * 返回位置 i 上的元素
      */
     @SuppressWarnings("unchecked")
     final E itemAt(int i) {
@@ -142,6 +146,8 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
 
     /**
      * Throws NullPointerException if argument is null.
+     *
+     * 检查是否为 null
      *
      * @param v the element
      */
@@ -153,12 +159,16 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     /**
      * Inserts element at current put position, advances, and signals.
      * Call only when holding lock.
+     *
+     * 添加元素
      */
     private void enqueue(E x) {
         // assert lock.getHoldCount() == 1;
         // assert items[putIndex] == null;
         final Object[] items = this.items;
+        // 添加元素
         items[putIndex] = x;
+        // 数组装不下时重置 putIndex
         if (++putIndex == items.length)
             putIndex = 0;
         count++;
@@ -168,6 +178,8 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     /**
      * Extracts element at current take position, advances, and signals.
      * Call only when holding lock.
+     *
+     * 出队
      */
     private E dequeue() {
         // assert lock.getHoldCount() == 1;
@@ -175,7 +187,9 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
         final Object[] items = this.items;
         @SuppressWarnings("unchecked")
         E x = (E) items[takeIndex];
+        // 元素置 null
         items[takeIndex] = null;
+        // 元素全部出队时重置 takeIndex
         if (++takeIndex == items.length)
             takeIndex = 0;
         count--;

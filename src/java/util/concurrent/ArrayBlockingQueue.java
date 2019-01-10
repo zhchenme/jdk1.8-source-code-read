@@ -93,6 +93,13 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     /** The queued items */
     final Object[] items;
 
+
+    /**
+     *
+     * 需要注意 takeIndex 不一定比 putIndex 大
+     */
+
+
     /** items index for next take, poll, peek or remove */
     // 出队序列，如果有一个元素出队，那么后面的元素不会向前移动，而是将 takeIndex 加 1 表示后面要出队的元素的角标
     int takeIndex;
@@ -208,7 +215,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
      * Utility for remove(Object) and iterator.remove.
      * Call only when holding lock.
      *
-     * 删除指定位置上的元素
+     * 删除指定位置上的元素，删除指定位置上的元素后需要调整继续使所有元素紧凑
      */
     void removeAt(final int removeIndex) {
         // assert lock.getHoldCount() == 1;
@@ -218,6 +225,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
         if (removeIndex == takeIndex) {
             // removing front item; just advance
             items[takeIndex] = null;
+            // 判断是否需要重置 takeIndex
             if (++takeIndex == items.length)
                 takeIndex = 0;
             count--;
@@ -232,10 +240,12 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
                 int next = i + 1;
                 if (next == items.length)
                     next = 0;
+                // 把后面的元素向前移动
                 if (next != putIndex) {
                     items[i] = items[next];
                     i = next;
                 } else {
+                    // 需要把 putIndex 前一个元素置 null，接着重置 putIndex = putIndex - 1
                     items[i] = null;
                     this.putIndex = i;
                     break;
@@ -510,6 +520,8 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
      * blocking. This is always equal to the initial capacity of this queue
      * less the current {@code size} of this queue.
      *
+     * 返回底层数组可用空间大小
+     *
      * <p>Note that you <em>cannot</em> always tell if an attempt to insert
      * an element will succeed by inspecting {@code remainingCapacity}
      * because it may be the case that another thread is about to
@@ -539,6 +551,8 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
      * only when the queue is known not to be accessible by other
      * threads.
      *
+     * 移除指定的元素值
+     *
      * @param o element to be removed from this queue, if present
      * @return {@code true} if this queue changed as a result of the call
      */
@@ -546,12 +560,17 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
         if (o == null) return false;
         final Object[] items = this.items;
         final ReentrantLock lock = this.lock;
+        // 加锁
         lock.lock();
         try {
+            // 首先判断数组中是否有元素
             if (count > 0) {
+                // i - putIndex 为数组中有元素的区间
                 final int putIndex = this.putIndex;
                 int i = takeIndex;
+                // 遍历有数据的部分
                 do {
+                    // 值相同移除
                     if (o.equals(items[i])) {
                         removeAt(i);
                         return true;
@@ -571,6 +590,8 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
      * More formally, returns {@code true} if and only if this queue contains
      * at least one element {@code e} such that {@code o.equals(e)}.
      *
+     * 判断是否包含某个指定的元素值
+     *
      * @param o object to be checked for containment in this queue
      * @return {@code true} if this queue contains the specified element
      */
@@ -583,9 +604,11 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
             if (count > 0) {
                 final int putIndex = this.putIndex;
                 int i = takeIndex;
+                // 在有元素的范围内查找
                 do {
                     if (o.equals(items[i]))
                         return true;
+                    // putIndex 不一定大于 takeIndex，可以理解为循环？不过这么说貌似有点不太合适，就是这么个意思
                     if (++i == items.length)
                         i = 0;
                 } while (i != putIndex);
@@ -718,6 +741,8 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     /**
      * Atomically removes all of the elements from this queue.
      * The queue will be empty after this call returns.
+     *
+     * 清空所有元素
      */
     public void clear() {
         final Object[] items = this.items;
@@ -728,11 +753,13 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
             if (k > 0) {
                 final int putIndex = this.putIndex;
                 int i = takeIndex;
+                // 遍历有元素的区间，逐个置 null
                 do {
                     items[i] = null;
                     if (++i == items.length)
                         i = 0;
                 } while (i != putIndex);
+                // 最终 takeIndex 会等于 putIndex
                 takeIndex = putIndex;
                 count = 0;
                 if (itrs != null)

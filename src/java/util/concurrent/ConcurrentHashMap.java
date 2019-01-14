@@ -507,18 +507,24 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * bounds for power of two table sizes, and is further required
      * because the top two bits of 32bit hash fields are used for
      * control purposes.
+     *
+     * 最大哈希表容量限制
      */
     private static final int MAXIMUM_CAPACITY = 1 << 30;
 
     /**
      * The default initial table capacity.  Must be a power of 2
      * (i.e., at least 1) and at most MAXIMUM_CAPACITY.
+     *
+     * 默认初始化大小
      */
     private static final int DEFAULT_CAPACITY = 16;
 
     /**
      * The largest possible (non-power of two) array size.
      * Needed by toArray and related methods.
+     *
+     * 数组最大容量限制
      */
     static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
 
@@ -534,6 +540,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * actual floating point value isn't normally used -- it is
      * simpler to use expressions such as {@code n - (n >>> 2)} for
      * the associated resizing threshold.
+     *
+     * 默认加载因子
      */
     private static final float LOAD_FACTOR = 0.75f;
 
@@ -544,6 +552,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * than 2, and should be at least 8 to mesh with assumptions in
      * tree removal about conversion back to plain bins upon
      * shrinkage.
+     *
+     * 树化阈值
      */
     static final int TREEIFY_THRESHOLD = 8;
 
@@ -551,6 +561,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * The bin count threshold for untreeifying a (split) bin during a
      * resize operation. Should be less than TREEIFY_THRESHOLD, and at
      * most 6 to mesh with shrinkage detection under removal.
+     *
+     * 非树化阈值
      */
     static final int UNTREEIFY_THRESHOLD = 6;
 
@@ -559,6 +571,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * (Otherwise the table is resized if too many nodes in a bin.)
      * The value should be at least 4 * TREEIFY_THRESHOLD to avoid
      * conflicts between resizing and treeification thresholds.
+     *
+     * 转树时哈希表数组最小容量限制
      */
     static final int MIN_TREEIFY_CAPACITY = 64;
 
@@ -580,6 +594,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     /**
      * The maximum number of threads that can help resize.
      * Must fit in 32 - RESIZE_STAMP_BITS bits.
+     *
+     * 最大线程数限制
      */
     private static final int MAX_RESIZERS = (1 << (32 - RESIZE_STAMP_BITS)) - 1;
 
@@ -615,6 +631,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * in bulk tasks.  Subclasses of Node with a negative hash field
      * are special, and contain null keys and values (but are never
      * exported).  Otherwise, keys and vals are never null.
+     *
+     * 内部 Node 数据结构
      */
     static class Node<K,V> implements Map.Entry<K,V> {
         final int hash;
@@ -688,6 +706,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     /**
      * Returns a power of two table size for the given desired capacity.
      * See Hackers Delight, sec 3.2
+     *
+     * 返回大于指定数值的最小的 2 的幂
      */
     private static final int tableSizeFor(int c) {
         int n = c - 1;
@@ -769,12 +789,15 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     /**
      * The array of bins. Lazily initialized upon first insertion.
      * Size is always a power of two. Accessed directly by iterators.
+     *
+     * 哈希表数组
      */
     transient volatile Node<K,V>[] table;
 
     /**
      * The next table to use; non-null only while resizing.
      */
+    // TODO 目的？只有在 rehash 时为 null
     private transient volatile Node<K,V>[] nextTable;
 
     /**
@@ -792,6 +815,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * creation, or 0 for default. After initialization, holds the
      * next element count value upon which to resize the table.
      */
+    // TODO
     private transient volatile int sizeCtl;
 
     /**
@@ -839,6 +863,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         int cap = ((initialCapacity >= (MAXIMUM_CAPACITY >>> 1)) ?
                    MAXIMUM_CAPACITY :
                    tableSizeFor(initialCapacity + (initialCapacity >>> 1) + 1));
+        // 这里 sizeCtl 为哈希表默认初始化大小
         this.sizeCtl = cap;
     }
 
@@ -882,7 +907,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * given the specified load factor.
      * @param loadFactor the load factor (table density) for
      * establishing the initial table size
-     * @param concurrencyLevel the estimated number of concurrently
+     * @param concurrencyLevel the estimated number of concurrently 预计的并发量
      * updating threads. The implementation may use this value as
      * a sizing hint.
      * @throws IllegalArgumentException if the initial capacity is
@@ -905,6 +930,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
 
     /**
      * {@inheritDoc}
+     *
+     * 返回键值对元素个数
      */
     public int size() {
         long n = sumCount();
@@ -928,6 +955,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * {@code k} to a value {@code v} such that {@code key.equals(k)},
      * then this method returns {@code v}; otherwise it returns
      * {@code null}.  (There can be at most one such mapping.)
+     *
+     * 根据 key 返回对应的 value
      *
      * @throws NullPointerException if the specified key is null
      */
@@ -996,6 +1025,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * <p>The value can be retrieved by calling the {@code get} method
      * with a key that is equal to the original key.
      *
+     * 添加键值对
+     *
      * @param key key with which the specified value is to be associated
      * @param value value to be associated with the specified key
      * @return the previous value associated with {@code key}, or
@@ -1013,8 +1044,11 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         int binCount = 0;
         for (Node<K,V>[] tab = table;;) {
             Node<K,V> f; int n, i, fh;
+            // 如果哈希表没有初始化，则初始化哈希表数组
             if (tab == null || (n = tab.length) == 0)
                 tab = initTable();
+
+            // TODO tomorrow ..
             else if ((f = tabAt(tab, i = (n - 1) & hash)) == null) {
                 if (casTabAt(tab, i, null,
                              new Node<K,V>(hash, key, value, null)))
@@ -2219,6 +2253,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
 
     /**
      * Initializes table, using the size recorded in sizeCtl.
+     *
+     * 初始化哈希表数组
      */
     private final Node<K,V>[] initTable() {
         Node<K,V>[] tab; int sc;
@@ -2228,10 +2264,12 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             else if (U.compareAndSwapInt(this, SIZECTL, sc, -1)) {
                 try {
                     if ((tab = table) == null || tab.length == 0) {
+                        // 初始化哈希表数组大小
                         int n = (sc > 0) ? sc : DEFAULT_CAPACITY;
                         @SuppressWarnings("unchecked")
                         Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[n];
                         table = tab = nt;
+                        // TODO
                         sc = n - (n >>> 2);
                     }
                 } finally {
@@ -2508,12 +2546,18 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         CounterCell(long x) { value = x; }
     }
 
+    /**
+     * 键值对个数统计
+     *
+     * @return
+     */
     final long sumCount() {
         CounterCell[] as = counterCells; CounterCell a;
         long sum = baseCount;
         if (as != null) {
             for (int i = 0; i < as.length; ++i) {
                 if ((a = as[i]) != null)
+                    // TODO
                     sum += a.value;
             }
         }

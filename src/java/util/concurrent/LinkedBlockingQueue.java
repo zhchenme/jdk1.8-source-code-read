@@ -479,28 +479,48 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
         return c >= 0;
     }
 
+    /**
+     * 出队，当队列中没有元素时阻塞 notEmpty
+     *
+     * @return
+     * @throws InterruptedException
+     */
     public E take() throws InterruptedException {
         E x;
         int c = -1;
+        // 获取元素数量，和 takeLock
         final AtomicInteger count = this.count;
         final ReentrantLock takeLock = this.takeLock;
+        // 出队加锁
         takeLock.lockInterruptibly();
         try {
+            // 当队列中没有元素时 notEmpty 锁阻塞
             while (count.get() == 0) {
                 notEmpty.await();
             }
+            // 出队
             x = dequeue();
             c = count.getAndDecrement();
+            // 出队后，队列中还有元素唤醒 notEmpty
+            // TODO
             if (c > 1)
                 notEmpty.signal();
         } finally {
             takeLock.unlock();
         }
+        // TODO
         if (c == capacity)
             signalNotFull();
         return x;
     }
 
+    /**
+     *
+     * @param timeout
+     * @param unit
+     * @return
+     * @throws InterruptedException
+     */
     public E poll(long timeout, TimeUnit unit) throws InterruptedException {
         E x = null;
         int c = -1;
@@ -526,6 +546,11 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
         return x;
     }
 
+    /**
+     * 出队，当队列中没有元素时返回 null
+     *
+     * @return
+     */
     public E poll() {
         final AtomicInteger count = this.count;
         if (count.get() == 0)
@@ -568,6 +593,14 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
     /**
      * Unlinks interior Node p with predecessor trail.
      */
+    /**
+     * 在链表中删除 p 节点
+     *
+     * p = trail.next
+     *
+     * @param p
+     * @param trail
+     */
     void unlink(Node<E> p, Node<E> trail) {
         // assert isFullyLocked();
         // p.next is not changed, to allow iterators that are
@@ -587,6 +620,8 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
      * elements.
      * Returns {@code true} if this queue contained the specified element
      * (or equivalently, if this queue changed as a result of the call).
+     *
+     * 移除指定的元素值
      *
      * @param o element to be removed from this queue, if present
      * @return {@code true} if this queue changed as a result of the call
@@ -614,6 +649,8 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
      * More formally, returns {@code true} if and only if this queue contains
      * at least one element {@code e} such that {@code o.equals(e)}.
      *
+     * 判断是否包含指定的元素
+     *
      * @param o object to be checked for containment in this queue
      * @return {@code true} if this queue contains the specified element
      */
@@ -621,6 +658,7 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
         if (o == null) return false;
         fullyLock();
         try {
+            // 遍历链表逐个判断
             for (Node<E> p = head.next; p != null; p = p.next)
                 if (o.equals(p.item))
                     return true;
@@ -737,16 +775,27 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
     /**
      * Atomically removes all of the elements from this queue.
      * The queue will be empty after this call returns.
+     *
+     * 清空队列中的所有元素
      */
     public void clear() {
+        /*
+         * 全部加锁
+         * putLock.lock();
+         * takeLock.lock();
+         */
         fullyLock();
         try {
+            // 遍历链表将所有元素置 null
             for (Node<E> p, h = head; (p = h.next) != null; h = p) {
                 h.next = h;
+                // 元素值置 null
                 p.item = null;
             }
+            // 重置头尾节点
             head = last;
             // assert head.item == null && head.next == null;
+            // TODO 为什么判断后唤醒 notFull 而不是直接唤醒
             if (count.getAndSet(0) == capacity)
                 notFull.signal();
         } finally {

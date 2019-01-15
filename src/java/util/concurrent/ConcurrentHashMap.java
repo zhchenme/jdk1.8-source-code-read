@@ -1038,8 +1038,16 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     }
 
     /** Implementation for put and putIfAbsent */
+    /**
+     * @param key
+     * @param value
+     * @param onlyIfAbsent 是一种插入元素策略，如果为 false，如果 key 已经存在则直接覆盖
+     * @return
+     */
     final V putVal(K key, V value, boolean onlyIfAbsent) {
+        // key 与 value 不允许为 null
         if (key == null || value == null) throw new NullPointerException();
+        // 哈希值
         int hash = spread(key.hashCode());
         int binCount = 0;
         for (Node<K,V>[] tab = table;;) {
@@ -1048,31 +1056,39 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             if (tab == null || (n = tab.length) == 0)
                 tab = initTable();
 
-            // TODO tomorrow ..
+            // i 代表插入的位置，如果该位置元素为 null，则直接通过 CAS 插入
             else if ((f = tabAt(tab, i = (n - 1) & hash)) == null) {
                 if (casTabAt(tab, i, null,
                              new Node<K,V>(hash, key, value, null)))
                     break;                   // no lock when adding to empty bin
             }
+            // TODO what's this?
             else if ((fh = f.hash) == MOVED)
                 tab = helpTransfer(tab, f);
             else {
                 V oldVal = null;
+                // 哈希冲突，加锁，f 为桶位置上的头节点
                 synchronized (f) {
+                    // 双重校验，一开始查找的位置上头节点没有改变
                     if (tabAt(tab, i) == f) {
+                        // 非树节点，非树节点 binCount 代表该链表上的键值对个数
                         if (fh >= 0) {
                             binCount = 1;
+                            // 从头节点开始遍历
                             for (Node<K,V> e = f;; ++binCount) {
                                 K ek;
+                                // key 相同，则获取旧的 value，直接结束循环
                                 if (e.hash == hash &&
                                     ((ek = e.key) == key ||
                                      (ek != null && key.equals(ek)))) {
                                     oldVal = e.val;
+                                    // 如果 onlyIfAbsent 为 false，则直接覆盖老得 value
                                     if (!onlyIfAbsent)
                                         e.val = value;
                                     break;
                                 }
                                 Node<K,V> pred = e;
+                                // key 不相同，获取后继节点，如果后继节点为 null 表示找到了插入位置
                                 if ((e = e.next) == null) {
                                     pred.next = new Node<K,V>(hash, key,
                                                               value, null);
@@ -1080,9 +1096,13 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                                 }
                             }
                         }
+                        // 如果当前桶位置上头节点是树节点，走树节点插入流程
                         else if (f instanceof TreeBin) {
                             Node<K,V> p;
+                            // 重置了一次 binCount
+                            // TODO 这个 2 有什么特殊意义吗，这个 2 应该是个小于 TREEIFY_THRESHOLD(8) 的任意数，到后面判断后不需要树化
                             binCount = 2;
+                            // key 重复，记录旧 value，并根据 onlyIfAbsent 判断是否需要覆盖旧 value
                             if ((p = ((TreeBin<K,V>)f).putTreeVal(hash, key,
                                                            value)) != null) {
                                 oldVal = p.val;
@@ -1093,8 +1113,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                     }
                 }
                 if (binCount != 0) {
+                    // 判断是否需要转树
                     if (binCount >= TREEIFY_THRESHOLD)
                         treeifyBin(tab, i);
+                    // 如果 key 重复则返回旧的 value
                     if (oldVal != null)
                         return oldVal;
                     break;
@@ -2288,6 +2310,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * after a transfer to see if another resize is already needed
      * because resizings are lagging additions.
      *
+     * TODO
      * @param x the count to add
      * @param check if <0, don't check resize, if <= 1 only check if uncontended
      */

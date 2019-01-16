@@ -804,6 +804,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * Base counter value, used mainly when there is no contention,
      * but also as a fallback during table initialization
      * races. Updated via CAS.
+     *
+     * 在没有竞争条件下使用该变量用于计数，被 volatile 修饰，使用 CAS 进行更新
      */
     private transient volatile long baseCount;
 
@@ -962,16 +964,22 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      */
     public V get(Object key) {
         Node<K,V>[] tab; Node<K,V> e, p; int n, eh; K ek;
+        // 计算哈希值
         int h = spread(key.hashCode());
+        // 哈希表存在，长度大于 0，桶位置上有键值对
         if ((tab = table) != null && (n = tab.length) > 0 &&
             (e = tabAt(tab, (n - 1) & h)) != null) {
+            // 如果头节点对应的 key 与查找 key 是同一个就直接返回
             if ((eh = e.hash) == h) {
                 if ((ek = e.key) == key || (ek != null && key.equals(ek)))
                     return e.val;
             }
+            // TODO 哈希值小于 0？
             else if (eh < 0)
                 return (p = e.find(h, key)) != null ? p.val : null;
             while ((e = e.next) != null) {
+                // 遍历链表，找到返回
+                // TODO 树与链表如何区分？HashMap 会判断链表、树节点后分别走对应的查找
                 if (e.hash == h &&
                     ((ek = e.key) == key || (ek != null && key.equals(ek))))
                     return e.val;
@@ -998,15 +1006,19 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * specified value. Note: This method may require a full traversal
      * of the map, and is much slower than method {@code containsKey}.
      *
+     * 判断是否包含指定的 value
+     *
      * @param value value whose presence in this map is to be tested
      * @return {@code true} if this map maps one or more keys to the
      *         specified value
      * @throws NullPointerException if the specified value is null
      */
     public boolean containsValue(Object value) {
+        // value 为 null，直接抛出异常
         if (value == null)
             throw new NullPointerException();
         Node<K,V>[] t;
+        // TODO whats this?
         if ((t = table) != null) {
             Traverser<K,V> it = new Traverser<K,V>(t, t.length, 0, t.length);
             for (Node<K,V> p; (p = it.advance()) != null; ) {
@@ -1039,6 +1051,13 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
 
     /** Implementation for put and putIfAbsent */
     /**
+     * 大致流程：
+     * 1.根据 key 的哈希值计算对应的桶位置
+     * 2.判断当前桶位置上是否有键值对，如果没有通过 CAS 直接插入
+     * 3.哈希冲突：加锁（头节点），判断是树结构还是链表结构，然后分别走不同的流程
+     * 4.以链表为例：从头开始遍历，如果 key 已经存在，根据 onlyIfAbsent 判断是否覆盖原来的 value 值，如果不存在则在尾节点继续插入一个新节点
+     * 5.计数，并判断是否需要扩容
+     *
      * @param key
      * @param value
      * @param onlyIfAbsent 是一种插入元素策略，如果为 false，如果 key 已经存在则直接覆盖
@@ -1056,7 +1075,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             if (tab == null || (n = tab.length) == 0)
                 tab = initTable();
 
-            // i 代表插入的位置，如果该位置元素为 null，则直接通过 CAS 插入
+            // i 代表插入的桶位置，如果该桶位置上没有任何元素，则直接通过 CAS 插入
             else if ((f = tabAt(tab, i = (n - 1) & hash)) == null) {
                 if (casTabAt(tab, i, null,
                              new Node<K,V>(hash, key, value, null)))
@@ -1100,7 +1119,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                         else if (f instanceof TreeBin) {
                             Node<K,V> p;
                             // 重置了一次 binCount
-                            // TODO 这个 2 有什么特殊意义吗，这个 2 应该是个小于 TREEIFY_THRESHOLD(8) 的任意数，到后面判断后不需要树化
+                            //  这个 2 有什么特殊意义吗，这个 2 应该是个小于 TREEIFY_THRESHOLD(8) 的任意数，到后面判断后不需要树化，因为本身就是树了
                             binCount = 2;
                             // key 重复，记录旧 value，并根据 onlyIfAbsent 判断是否需要覆盖旧 value
                             if ((p = ((TreeBin<K,V>)f).putTreeVal(hash, key,
@@ -1123,6 +1142,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 }
             }
         }
+        // binCount 一定是大于等于 的数
         addCount(1L, binCount);
         return null;
     }
@@ -2310,7 +2330,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * after a transfer to see if another resize is already needed
      * because resizings are lagging additions.
      *
-     * TODO
+     *
+     * 当 check 大于1 时，需要进行扩容检查，如果是添加键值对，check 一定是大于等于 0 的数
+     * TODO 涉及到太多的变量了...
+     *
      * @param x the count to add
      * @param check if <0, don't check resize, if <= 1 only check if uncontended
      */

@@ -172,6 +172,8 @@ public class Hashtable<K,V>
      * Constructs a new, empty hashtable with the specified initial
      * capacity and the specified load factor.
      *
+     * 构造函数
+     *
      * @param      initialCapacity   the initial capacity of the hashtable.
      * @param      loadFactor        the load factor of the hashtable.
      * @exception  IllegalArgumentException  if the initial capacity is less
@@ -187,7 +189,9 @@ public class Hashtable<K,V>
         if (initialCapacity==0)
             initialCapacity = 1;
         this.loadFactor = loadFactor;
+        // 初始化哈希表数组大小，HashMap 中初始化容量大小必须是 2 的幂，但是 Hashtable 没有这个限制
         table = new Entry<?,?>[initialCapacity];
+        // 初始化扩容阈值
         threshold = (int)Math.min(initialCapacity * loadFactor, MAX_ARRAY_SIZE + 1);
     }
 
@@ -206,6 +210,10 @@ public class Hashtable<K,V>
     /**
      * Constructs a new, empty hashtable with a default initial capacity (11)
      * and load factor (0.75).
+     *
+     * 默认构造函数，默认初始化容量是 11
+     *
+     * TODO why 11
      */
     public Hashtable() {
         this(11, 0.75f);
@@ -281,6 +289,8 @@ public class Hashtable<K,V>
      * {@link #containsValue containsValue}, (which is part of the
      * {@link Map} interface in the collections framework).
      *
+     *判断是否包含指定的 value
+     *
      * @param      value   a value to search for
      * @return     <code>true</code> if and only if some key maps to the
      *             <code>value</code> argument in this hashtable as
@@ -289,13 +299,18 @@ public class Hashtable<K,V>
      * @exception  NullPointerException  if the value is <code>null</code>
      */
     public synchronized boolean contains(Object value) {
+        // 如果 value 为 null 直接抛出异常
         if (value == null) {
             throw new NullPointerException();
         }
 
+        // 获取哈希表
         Entry<?,?> tab[] = table;
+        // 遍历所有桶
         for (int i = tab.length ; i-- > 0 ;) {
+            // 如果当前桶位置上有元素，则遍历
             for (Entry<?,?> e = tab[i] ; e != null ; e = e.next) {
+                // 包含指定的 value 返回 true
                 if (e.value.equals(value)) {
                     return true;
                 }
@@ -323,6 +338,8 @@ public class Hashtable<K,V>
     /**
      * Tests if the specified object is a key in this hashtable.
      *
+     * 判断是否包含指定的 key
+     *
      * @param   key   possible key
      * @return  <code>true</code> if and only if the specified object
      *          is a key in this hashtable, as determined by the
@@ -331,9 +348,16 @@ public class Hashtable<K,V>
      * @see     #contains(Object)
      */
     public synchronized boolean containsKey(Object key) {
+        // 获取哈希表
         Entry<?,?> tab[] = table;
+        // 计算 key 的哈希值
         int hash = key.hashCode();
+        /**
+         * 通过取余的方式计算对应的桶位置
+         * HashMap 中获取桶位置的方式：(n - 1) & hash
+         */
         int index = (hash & 0x7FFFFFFF) % tab.length;
+        // 获取桶位置上的链表如果不为 null 则遍历
         for (Entry<?,?> e = tab[index] ; e != null ; e = e.next) {
             if ((e.hash == hash) && e.key.equals(key)) {
                 return true;
@@ -350,6 +374,8 @@ public class Hashtable<K,V>
      * {@code k} to a value {@code v} such that {@code (key.equals(k))},
      * then this method returns {@code v}; otherwise it returns
      * {@code null}.  (There can be at most one such mapping.)
+     *
+     * 根据 key 获取对应的 value，和判断是否包含指定的 key 步骤一毛一样，只不过如果找到对应的 key 就返回对应的 value
      *
      * @param key the key whose associated value is to be returned
      * @return the value to which the specified key is mapped, or
@@ -384,55 +410,83 @@ public class Hashtable<K,V>
      * efficiently.  This method is called automatically when the
      * number of keys in the hashtable exceeds this hashtable's capacity
      * and load factor.
+     *
+     * rehash
      */
     @SuppressWarnings("unchecked")
     protected void rehash() {
+        // 获取老哈希表容量
         int oldCapacity = table.length;
         Entry<?,?>[] oldMap = table;
 
         // overflow-conscious code
+        // 新哈希表容量为原容量的 2 倍 + 1，与 HashMap 不同
         int newCapacity = (oldCapacity << 1) + 1;
+        // 容量很大特殊处理
         if (newCapacity - MAX_ARRAY_SIZE > 0) {
             if (oldCapacity == MAX_ARRAY_SIZE)
                 // Keep running with MAX_ARRAY_SIZE buckets
                 return;
             newCapacity = MAX_ARRAY_SIZE;
         }
+        // 初始化新哈希表
         Entry<?,?>[] newMap = new Entry<?,?>[newCapacity];
 
         modCount++;
+        // 重置扩容阈值，与 HashMap 不同，HashMap 直接把 threshold 也扩大为原来的两倍
         threshold = (int)Math.min(newCapacity * loadFactor, MAX_ARRAY_SIZE + 1);
+        // 重置哈希表数组
         table = newMap;
 
+        // 从底向上进行 rehash
         for (int i = oldCapacity ; i-- > 0 ;) {
+            // 获取旧哈希表对应桶位置上的链表
             for (Entry<K,V> old = (Entry<K,V>)oldMap[i] ; old != null ; ) {
+                // 链表
                 Entry<K,V> e = old;
+                // 重置继续遍历
                 old = old.next;
 
+                // 获取在新哈希表中的桶位置，逐个进行 rehash
                 int index = (e.hash & 0x7FFFFFFF) % newCapacity;
+                // 头插法 rehash
                 e.next = (Entry<K,V>)newMap[index];
+                // 自己做头节点
                 newMap[index] = e;
             }
         }
     }
 
+    /**
+     * 添加新的键值对节点
+     *
+     * @param hash
+     * @param key
+     * @param value
+     * @param index 桶位置
+     */
     private void addEntry(int hash, K key, V value, int index) {
         modCount++;
 
         Entry<?,?> tab[] = table;
+        // 延迟 rehash？先判断是否需要扩容再 count++
         if (count >= threshold) {
             // Rehash the table if the threshold is exceeded
             rehash();
 
             tab = table;
             hash = key.hashCode();
+            // 扩容后，新的键值对对应的桶位置可能会发生变化，因此要重新计算桶位置
             index = (hash & 0x7FFFFFFF) % tab.length;
         }
 
         // Creates the new entry.
         @SuppressWarnings("unchecked")
+                // 获取桶位置上的链表
         Entry<K,V> e = (Entry<K,V>) tab[index];
+        // 头插法插入键值对
         tab[index] = new Entry<>(hash, key, value, e);
+        // count++
         count++;
     }
 
@@ -443,6 +497,8 @@ public class Hashtable<K,V>
      *
      * The value can be retrieved by calling the <code>get</code> method
      * with a key that is equal to the original key.
+     *
+     * 添加键值对
      *
      * @param      key     the hashtable key
      * @param      value   the value
@@ -455,6 +511,7 @@ public class Hashtable<K,V>
      */
     public synchronized V put(K key, V value) {
         // Make sure the value is not null
+        // key 可以为 null 但是 value 不允许为 null
         if (value == null) {
             throw new NullPointerException();
         }
@@ -462,10 +519,13 @@ public class Hashtable<K,V>
         // Makes sure the key is not already in the hashtable.
         Entry<?,?> tab[] = table;
         int hash = key.hashCode();
+        // 计算对应的桶位置
         int index = (hash & 0x7FFFFFFF) % tab.length;
         @SuppressWarnings("unchecked")
         Entry<K,V> entry = (Entry<K,V>)tab[index];
+        // 如果桶位置上对应的链表不为 null，则遍历该链表
         for(; entry != null ; entry = entry.next) {
+            // key 重复，value 替换，返回老的 value
             if ((entry.hash == hash) && entry.key.equals(key)) {
                 V old = entry.value;
                 entry.value = value;
@@ -473,13 +533,17 @@ public class Hashtable<K,V>
             }
         }
 
+        // 添加新的键值对
         addEntry(hash, key, value, index);
+        // 添加成功返回 null
         return null;
     }
 
     /**
      * Removes the key (and its corresponding value) from this
      * hashtable. This method does nothing if the key is not in the hashtable.
+     *
+     * 根据 key 移除键值对
      *
      * @param   key   the key that needs to be removed
      * @return  the value to which the key had been mapped in this hashtable,
@@ -489,19 +553,25 @@ public class Hashtable<K,V>
     public synchronized V remove(Object key) {
         Entry<?,?> tab[] = table;
         int hash = key.hashCode();
+        // 根据 key 的哈希值计算对应的桶位置
         int index = (hash & 0x7FFFFFFF) % tab.length;
         @SuppressWarnings("unchecked")
+                // 获取桶位置上对应的链表
         Entry<K,V> e = (Entry<K,V>)tab[index];
         for(Entry<K,V> prev = null ; e != null ; prev = e, e = e.next) {
             if ((e.hash == hash) && e.key.equals(key)) {
                 modCount++;
+                // 移除的非头节点
                 if (prev != null) {
+                    // 断开要移除的节点 e
                     prev.next = e.next;
                 } else {
+                    // 如果要移除的是头节点则重置后面的节点为头节点
                     tab[index] = e.next;
                 }
                 count--;
                 V oldValue = e.value;
+                // help GC
                 e.value = null;
                 return oldValue;
             }
@@ -519,18 +589,23 @@ public class Hashtable<K,V>
      * @since 1.2
      */
     public synchronized void putAll(Map<? extends K, ? extends V> t) {
+        // 这个 putAll 方法也太真实了...
         for (Map.Entry<? extends K, ? extends V> e : t.entrySet())
             put(e.getKey(), e.getValue());
     }
 
     /**
      * Clears this hashtable so that it contains no keys.
+     *
+     * 清空所有键值对
      */
     public synchronized void clear() {
         Entry<?,?> tab[] = table;
         modCount++;
+        // 把所有桶位置上的链表置 null
         for (int index = tab.length; --index >= 0; )
             tab[index] = null;
+        // count 置 0
         count = 0;
     }
 

@@ -177,7 +177,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
         final Object[] items = this.items;
         // 添加元素
         items[putIndex] = x;
-        // 数组装不下时重置 putIndex
+        // 如果添加的元素在数组中最后，则重置 putIndex 为 0
         if (++putIndex == items.length)
             putIndex = 0;
         count++;
@@ -199,7 +199,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
         E x = (E) items[takeIndex];
         // 元素置 null
         items[takeIndex] = null;
-        // 元素全部出队时重置 takeIndex
+        // 如果出队的是数组中的最后一个元素，则重置 takeIndex 为 0
         if (++takeIndex == items.length)
             takeIndex = 0;
         count--;
@@ -396,7 +396,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
          */
         lock.lockInterruptibly();
         try {
-            // 如果队列数组已满，则 notFull 阻塞，当调用 take() 方法后唤醒 notFull
+            // 如果队列数组已满，则 notFull 阻塞，当调用 dequeue() 方法后唤醒 notFull
             while (count == items.length)
                 notFull.await();
             // 元素入队

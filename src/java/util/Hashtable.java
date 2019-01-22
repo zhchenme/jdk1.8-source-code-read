@@ -511,7 +511,7 @@ public class Hashtable<K,V>
      */
     public synchronized V put(K key, V value) {
         // Make sure the value is not null
-        // key 可以为 null 但是 value 不允许为 null
+        // key（如果为 null，计算哈希值时会抛异常），value 不允许为 null
         if (value == null) {
             throw new NullPointerException();
         }

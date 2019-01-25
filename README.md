@@ -16,13 +16,14 @@
 [1.12 TreeMap](notes/data-structure/TreeMap.md)<br>
 1.13 IdentityHashMap <br>
 1.14 WeakHashMap <br>
+1.15 EnumMap <br>
 
 ### 二、并发数据结构
 
-[2.1 ArrayBlockingQueue](notes/data-structure/ArrayBlockingQueue.md)<br>
+[2.1 ArrayBlockingQueue](https://zchen96.github.io/2019/01/21/ArrayBlockingQueue-%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/)<br>
 2.2 LinkedBlockingQueue <br>
 [2.3 ConcurrentHashMap 源码阅读](notes/data-structure/ConcurrentHashMap.md)<br>
-2.4 Hashtable <br>
+[2.4 Hashtable](https://zchen96.github.io/2019/01/25/Hashtable-%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/) <br>
 2.5 DelayQueue <br>
 
 

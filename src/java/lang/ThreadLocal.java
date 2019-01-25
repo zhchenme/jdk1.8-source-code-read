@@ -81,6 +81,8 @@ public class ThreadLocal<T> {
      * in the common case where consecutively constructed ThreadLocals
      * are used by the same threads, while remaining well-behaved in
      * less common cases.
+     *
+     * ThreadLocal 的哈希值并不是通过 ThreadLocal.hashCode 计算，而是通过一个原子类实现
      */
     private final int threadLocalHashCode = nextHashCode();
 
@@ -100,6 +102,8 @@ public class ThreadLocal<T> {
 
     /**
      * Returns the next hash code.
+     *
+     * 哈希值每次自增 1，因此可以均匀落在哈希表桶位置上
      */
     private static int nextHashCode() {
         return nextHashCode.getAndAdd(HASH_INCREMENT);
@@ -154,19 +158,25 @@ public class ThreadLocal<T> {
      * current thread, it is first initialized to the value returned
      * by an invocation of the {@link #initialValue} method.
      *
+     * 返回当前线程返回的 value
+     *
      * @return the current thread's value of this thread-local
      */
     public T get() {
         Thread t = Thread.currentThread();
+        // 根据当前线程获取对应的 map
         ThreadLocalMap map = getMap(t);
         if (map != null) {
+            // 根据当前对象获取到对应的 Entry
             ThreadLocalMap.Entry e = map.getEntry(this);
             if (e != null) {
                 @SuppressWarnings("unchecked")
                 T result = (T)e.value;
+                // 返回 Entry 中对应的 value
                 return result;
             }
         }
+        // map 为空时创建
         return setInitialValue();
     }
 
@@ -177,11 +187,14 @@ public class ThreadLocal<T> {
      * @return the initial value
      */
     private T setInitialValue() {
+        // 获取 initialValue() 方法中对应的 value
         T value = initialValue();
         Thread t = Thread.currentThread();
         ThreadLocalMap map = getMap(t);
+        // 如果对应的 map 不为空，则重置对应的 value
         if (map != null)
             map.set(this, value);
+        // map 为空，初始化 map
         else
             createMap(t, value);
         return value;
@@ -193,11 +206,14 @@ public class ThreadLocal<T> {
      * override this method, relying solely on the {@link #initialValue}
      * method to set the values of thread-locals.
      *
+     * 设置 value
+     *
      * @param value the value to be stored in the current thread's copy of
      *        this thread-local.
      */
     public void set(T value) {
         Thread t = Thread.currentThread();
+        // 根据当前线程获取对应的 map
         ThreadLocalMap map = getMap(t);
         if (map != null)
             map.set(this, value);
@@ -214,6 +230,8 @@ public class ThreadLocal<T> {
      * in the interim.  This may result in multiple invocations of the
      * {@code initialValue} method in the current thread.
      *
+     * 移除当前线程的 ThreadLocalMap
+     *
      * @since 1.5
      */
      public void remove() {
@@ -226,6 +244,8 @@ public class ThreadLocal<T> {
      * Get the map associated with a ThreadLocal. Overridden in
      * InheritableThreadLocal.
      *
+     * 返回当前线程对应的 ThreadLocalMap
+     *
      * @param  t the current thread
      * @return the map
      */
@@ -236,6 +256,8 @@ public class ThreadLocal<T> {
     /**
      * Create the map associated with a ThreadLocal. Overridden in
      * InheritableThreadLocal.
+     *
+     * 为当前线程创建 ThreadLocalMap
      *
      * @param t the current thread
      * @param firstValue value for the initial entry of the map
@@ -310,6 +332,7 @@ public class ThreadLocal<T> {
             Object value;
 
             Entry(ThreadLocal<?> k, Object v) {
+                // key 为弱引用
                 super(k);
                 value = v;
             }
@@ -317,12 +340,16 @@ public class ThreadLocal<T> {
 
         /**
          * The initial capacity -- MUST be a power of two.
+         *
+         * 哈比表数组默认初始化大小
          */
         private static final int INITIAL_CAPACITY = 16;
 
         /**
          * The table, resized as necessary.
          * table.length MUST always be a power of two.
+         *
+         * 底层哈希表数组
          */
         private Entry[] table;
 
@@ -333,6 +360,8 @@ public class ThreadLocal<T> {
 
         /**
          * The next size value at which to resize.
+         *
+         * 扩容阈值
          */
         private int threshold; // Default to 0
 
@@ -361,12 +390,19 @@ public class ThreadLocal<T> {
          * Construct a new map initially containing (firstKey, firstValue).
          * ThreadLocalMaps are constructed lazily, so we only create
          * one when we have at least one entry to put in it.
+         *
+         * 第一次添加的时候会调用构造函数进行初始化，并设置第一个线程对应的 key 与 value
          */
         ThreadLocalMap(ThreadLocal<?> firstKey, Object firstValue) {
+            // 初始化哈希表数组
             table = new Entry[INITIAL_CAPACITY];
+            // 计算桶位置
             int i = firstKey.threadLocalHashCode & (INITIAL_CAPACITY - 1);
+            // 设置到对应的桶位置上（已经有了一个 key 与 value）
             table[i] = new Entry(firstKey, firstValue);
+            // 初始化 size 为 1
             size = 1;
+            // 设置扩容阈值为初始容量的 2/3
             setThreshold(INITIAL_CAPACITY);
         }
 
@@ -407,14 +443,20 @@ public class ThreadLocal<T> {
          * designed to maximize performance for direct hits, in part
          * by making this method readily inlinable.
          *
+         * 根据 key 获取对应的 value
+         *
          * @param  key the thread local object
          * @return the entry associated with key, or null if no such
          */
         private Entry getEntry(ThreadLocal<?> key) {
+            // 获取桶位置
             int i = key.threadLocalHashCode & (table.length - 1);
+            // 获取桶位置上对应的链表
             Entry e = table[i];
+            // 头节点，e.get() 是对象的引用
             if (e != null && e.get() == key)
                 return e;
+            // 非头节点
             else
                 return getEntryAfterMiss(key, i, e);
         }
@@ -586,6 +628,7 @@ public class ThreadLocal<T> {
          * (all between staleSlot and this slot will have been checked
          * for expunging).
          */
+        // TODO
         private int expungeStaleEntry(int staleSlot) {
             Entry[] tab = table;
             int len = tab.length;

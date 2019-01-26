@@ -453,10 +453,10 @@ public class ThreadLocal<T> {
             int i = key.threadLocalHashCode & (table.length - 1);
             // 获取桶位置上对应的链表
             Entry e = table[i];
-            // 头节点，e.get() 是对象的引用
+            // 哈希不冲突，直接获取对应的 value 并返回
             if (e != null && e.get() == key)
                 return e;
-            // 非头节点
+            // 哈希冲突，则遍历后面的桶位置，进行查找，当然 key 可能因为是弱引用被擦出，需要额外处理
             else
                 return getEntryAfterMiss(key, i, e);
         }
@@ -464,6 +464,8 @@ public class ThreadLocal<T> {
         /**
          * Version of getEntry method for use when key is not found in
          * its direct hash slot.
+         *
+         * 哈希冲突
          *
          * @param  key the thread local object
          * @param  i the table index for key's hash code
@@ -476,19 +478,25 @@ public class ThreadLocal<T> {
 
             while (e != null) {
                 ThreadLocal<?> k = e.get();
+                // 找到直接返回， value
                 if (k == key)
                     return e;
+                // 如果 key 被擦出，则清除
                 if (k == null)
                     expungeStaleEntry(i);
                 else
+                    // 重置 i 用于循环遍历
                     i = nextIndex(i, len);
                 e = tab[i];
             }
+            // 没有找到返回 null
             return null;
         }
 
         /**
          * Set the value associated with key.
+         *
+         * 设置键值对
          *
          * @param key the thread local object
          * @param value the value to be set
@@ -502,42 +510,51 @@ public class ThreadLocal<T> {
 
             Entry[] tab = table;
             int len = tab.length;
+            // 计算 key 对应的桶位置
             int i = key.threadLocalHashCode & (len-1);
 
-            for (Entry e = tab[i];
-                 e != null;
-                 e = tab[i = nextIndex(i, len)]) {
+            // e = tab[i = nextIndex(i, len)] 线性探测法解决哈希冲突
+            for (Entry e = tab[i]; e != null; e = tab[i = nextIndex(i, len)]) {
                 ThreadLocal<?> k = e.get();
 
+                // key 重复，value 覆盖
                 if (k == key) {
                     e.value = value;
                     return;
                 }
 
+                // key 为 null，是因为 key 是弱引用，可能已经被 GC 回收了
                 if (k == null) {
                     replaceStaleEntry(key, value, i);
                     return;
                 }
             }
 
+            // 找到插入的位置，存储 key 与 value
             tab[i] = new Entry(key, value);
             int sz = ++size;
+            // cleanSomeSlots 用于删除可能已经被 GC 回收的 key
+            // 如果没有 key 被 GC 回收，并且哈希表数组中的键值对数量大于 2/3，执行扩容操作
             if (!cleanSomeSlots(i, sz) && sz >= threshold)
                 rehash();
         }
 
         /**
          * Remove the entry for key.
+         *
+         * 根据 key 移除对应的键值对
          */
         private void remove(ThreadLocal<?> key) {
             Entry[] tab = table;
             int len = tab.length;
+            // 计算出对应的桶位置，当然对应桶位置上的键值对并不一定是当前 key 对应的键值对，因为可能存在哈希冲突
             int i = key.threadLocalHashCode & (len-1);
-            for (Entry e = tab[i];
-                 e != null;
-                 e = tab[i = nextIndex(i, len)]) {
+            // 从 i 位置向后遍历，遍历结束的位置是后续桶位置上为 null
+            for (Entry e = tab[i]; e != null; e = tab[i = nextIndex(i, len)]) {
                 if (e.get() == key) {
+                    // key 清空
                     e.clear();
+                    // 调用 expungeStaleEntry 方法
                     expungeStaleEntry(i);
                     return;
                 }
@@ -557,8 +574,9 @@ public class ThreadLocal<T> {
          * @param  key the key
          * @param  value the value to be associated with key
          * @param  staleSlot index of the first stale entry encountered while
-         *         searching for key.
+         *         searching for key. 已经被擦除的 key 对应的桶位置
          */
+        // TODO
         private void replaceStaleEntry(ThreadLocal<?> key, Object value,
                                        int staleSlot) {
             Entry[] tab = table;
@@ -569,18 +587,17 @@ public class ThreadLocal<T> {
             // We clean out whole runs at a time to avoid continual
             // incremental rehashing due to garbage collector freeing
             // up refs in bunches (i.e., whenever the collector runs).
+            // 记录桶位置
             int slotToExpunge = staleSlot;
-            for (int i = prevIndex(staleSlot, len);
-                 (e = tab[i]) != null;
-                 i = prevIndex(i, len))
+
+            // 寻找 slotToExpunge 前一个连续不为空的 key 被擦除的桶位置
+            for (int i = prevIndex(staleSlot, len); (e = tab[i]) != null; i = prevIndex(i, len))
                 if (e.get() == null)
                     slotToExpunge = i;
 
             // Find either the key or trailing null slot of run, whichever
             // occurs first
-            for (int i = nextIndex(staleSlot, len);
-                 (e = tab[i]) != null;
-                 i = nextIndex(i, len)) {
+            for (int i = nextIndex(staleSlot, len); (e = tab[i]) != null; i = nextIndex(i, len)) {
                 ThreadLocal<?> k = e.get();
 
                 // If we find key, then we need to swap it
@@ -623,33 +640,44 @@ public class ThreadLocal<T> {
          * any other stale entries encountered before the trailing null.  See
          * Knuth, Section 6.4
          *
+         * 移除 staleSlot 桶位置上的键值对，移除后需要考虑之前是否有哈希冲突，如果有，则额外处理
+         * 如何解决之前可能存在哈希冲突呢，答案就是把后面连续的元素重新 rehash，然后重新放置，太聪明了...
+         *
+         * 这是一个核心方法，需重点理解
+         *
          * @param staleSlot index of slot known to have null key
          * @return the index of the next null slot after staleSlot
          * (all between staleSlot and this slot will have been checked
          * for expunging).
          */
-        // TODO
         private int expungeStaleEntry(int staleSlot) {
             Entry[] tab = table;
             int len = tab.length;
 
             // expunge entry at staleSlot
+            // value 置 null，对应桶位置上的 Entry 也置 null
             tab[staleSlot].value = null;
             tab[staleSlot] = null;
+            // 键值对数量减 1
             size--;
 
             // Rehash until we encounter null
+            // 删除一个 key 被擦除的键值对，可能因为之前哈希冲突，导致后面桶位置上的键值对位置不准确，因此要向前调整后面桶位置上的键值对
             Entry e;
             int i;
+            // 从 staleSlot 位置向后遍历，要求必须连续
             for (i = nextIndex(staleSlot, len);
                  (e = tab[i]) != null;
                  i = nextIndex(i, len)) {
                 ThreadLocal<?> k = e.get();
+                // 如果后面桶位置上键值对被擦除，则直接清除
                 if (k == null) {
                     e.value = null;
                     tab[i] = null;
                     size--;
                 } else {
+                    // 重新 rehash，计算对应的桶位置
+                    // TODO 重点理解，重新 rehash 解决之前可能存在哈希冲突的情况
                     int h = k.threadLocalHashCode & (len - 1);
                     if (h != i) {
                         tab[i] = null;
@@ -662,6 +690,7 @@ public class ThreadLocal<T> {
                     }
                 }
             }
+            // 返回 staleSlot 之后第一个键值对为 null 的桶位置
             return i;
         }
 
@@ -673,6 +702,9 @@ public class ThreadLocal<T> {
          * scanning (fast but retains garbage) and a number of scans
          * proportional to number of elements, that would find all
          * garbage but would cause some insertions to take O(n) time.
+         *
+         * 清除哈希表中 key 已经被擦出的键值对
+         * 注意：执行的是对数扫描，并不会扫描整个哈希表数组
          *
          * @param i a position known NOT to hold a stale entry. The
          * scan starts at the element after i.
@@ -695,13 +727,17 @@ public class ThreadLocal<T> {
             int len = tab.length;
             do {
                 i = nextIndex(i, len);
+                // 获取对应桶位置上的 Entry
                 Entry e = tab[i];
+                // Entry 不为 null，key 为 null 是因为 key 是弱引用可能会被 GC 回收，因此需要在哈希表中删除
                 if (e != null && e.get() == null) {
                     n = len;
+                    // 如果有键值对被擦出就返回 true
                     removed = true;
+                    // 删除 i 位置上的键值对
                     i = expungeStaleEntry(i);
                 }
-            } while ( (n >>>= 1) != 0);
+            } /* 对数扫描，并不会扫描整个哈希表数组 */while ( (n >>>= 1) != 0);
             return removed;
         }
 
@@ -711,31 +747,45 @@ public class ThreadLocal<T> {
          * shrink the size of the table, double the table size.
          */
         private void rehash() {
+            // 清除所有 key 被擦出的键值对
             expungeStaleEntries();
 
             // Use lower threshold for doubling to avoid hysteresis
+            // 再次判断
+            // TODO 这个判断有什么作用？不可能是 false 的啊
             if (size >= threshold - threshold / 4)
                 resize();
         }
 
         /**
          * Double the capacity of the table.
+         *
+         * 扩容机制
          */
         private void resize() {
             Entry[] oldTab = table;
             int oldLen = oldTab.length;
+            // 新哈希表的大小为原哈希表大小的 2 倍
             int newLen = oldLen * 2;
+            // 初始化新哈希表
             Entry[] newTab = new Entry[newLen];
+            // 记录新哈希表中键值对的个数
             int count = 0;
 
+            // 遍历老哈希表数组，尽心 rehash
             for (int j = 0; j < oldLen; ++j) {
+                // 获取老哈希表桶位置上的 Entry
                 Entry e = oldTab[j];
                 if (e != null) {
                     ThreadLocal<?> k = e.get();
+                    // 如果 key 被回收，则把 value 也置 null
+                    // 无时不刻判断着 key 被擦除的情况
                     if (k == null) {
                         e.value = null; // Help the GC
                     } else {
+                        // 计算老哈希表中的键值对在新哈希表中的桶位置
                         int h = k.threadLocalHashCode & (newLen - 1);
+                        // 这里也可能会产生哈希冲突
                         while (newTab[h] != null)
                             h = nextIndex(h, newLen);
                         newTab[h] = e;
@@ -744,13 +794,17 @@ public class ThreadLocal<T> {
                 }
             }
 
+            // 设置新的扩容阈值，2/3
             setThreshold(newLen);
             size = count;
+            // 新的哈希表替代老的哈希表
             table = newTab;
         }
 
         /**
          * Expunge all stale entries in the table.
+         *
+         * 扫描整个哈希表数组，清空所有 key 被擦除的键值对
          */
         private void expungeStaleEntries() {
             Entry[] tab = table;

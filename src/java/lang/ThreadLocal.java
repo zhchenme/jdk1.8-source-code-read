@@ -97,13 +97,16 @@ public class ThreadLocal<T> {
      * The difference between successively generated hash codes - turns
      * implicit sequential thread-local IDs into near-optimally spread
      * multiplicative hash values for power-of-two-sized tables.
+     *
+     * 该值生成出来的值可以较为均匀地分布在 2 的幂大小的数组中
+     * 据说与斐波那契散列有关...
      */
     private static final int HASH_INCREMENT = 0x61c88647;
 
     /**
      * Returns the next hash code.
      *
-     * 哈希值每次自增 1，因此可以均匀落在哈希表桶位置上
+     * 哈希值自增，因此可以均匀落在哈希表桶位置上
      */
     private static int nextHashCode() {
         return nextHashCode.getAndAdd(HASH_INCREMENT);

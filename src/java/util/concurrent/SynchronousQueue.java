@@ -164,6 +164,8 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
 
     /**
      * Shared internal API for dual stacks and queues.
+     *
+     * 栈和队列实现的抽象类
      */
     abstract static class Transferer<E> {
         /**
@@ -183,6 +185,9 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
     }
 
     /** The number of CPUs, for spin control */
+    /**
+     * cpu 核数
+     */
     static final int NCPUS = Runtime.getRuntime().availableProcessors();
 
     /**
@@ -219,20 +224,39 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
 
         /* Modes for SNodes, ORed together in node fields */
         /** Node represents an unfulfilled consumer */
+        /**
+         *
+         */
         static final int REQUEST    = 0;
         /** Node represents an unfulfilled producer */
+        /**
+         *
+         */
         static final int DATA       = 1;
         /** Node is fulfilling another unfulfilled DATA or REQUEST */
+        /**
+         *
+         */
         static final int FULFILLING = 2;
 
         /** Returns true if m has fulfilling bit set. */
+        /**
+         * 如果 m 是填充单元返回 true
+         *
+         * @param m
+         * @return
+         */
         static boolean isFulfilling(int m) { return (m & FULFILLING) != 0; }
 
         /** Node class for TransferStacks. */
         static final class SNode {
+            // 下一个节点
             volatile SNode next;        // next node in stack
+            // 匹配节点
             volatile SNode match;       // the node matched to this
+            // 等待者线程
             volatile Thread waiter;     // to control park/unpark
+            // 资源数据，如果
             Object item;                // data; or null for REQUESTs
             int mode;
             // Note: item and mode fields don't need to be volatile
@@ -850,8 +874,11 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
 
     /**
      * Creates a {@code SynchronousQueue} with nonfair access policy.
+     *
+     * 默认为非公平锁
      */
     public SynchronousQueue() {
+        // 默认条件下创建的是 TransferStack
         this(false);
     }
 
@@ -862,6 +889,10 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
      *        access; otherwise the order is unspecified.
      */
     public SynchronousQueue(boolean fair) {
+        /**
+         * true:TransferQueue
+         * false:TransferStack
+         */
         transferer = fair ? new TransferQueue<E>() : new TransferStack<E>();
     }
 
@@ -873,6 +904,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
      * @throws NullPointerException {@inheritDoc}
      */
     public void put(E e) throws InterruptedException {
+        // 元素不允许为空
         if (e == null) throw new NullPointerException();
         if (transferer.transfer(e, false, 0) == null) {
             Thread.interrupted();

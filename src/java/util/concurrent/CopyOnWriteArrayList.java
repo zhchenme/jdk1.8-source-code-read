@@ -196,7 +196,7 @@ public class CopyOnWriteArrayList<E>
      * static version of indexOf, to allow repeated calls without
      * needing to re-acquire array each time.
      *
-     * 返回要查找元素的位置
+     * 返回要查找元素第一次出现的位置
      *
      * @param o element to search for 查找的元素
      * @param elements the array 指定查找的数组
@@ -587,12 +587,17 @@ public class CopyOnWriteArrayList<E>
      * contained the specified element (or equivalently, if this list
      * changed as a result of the call).
      *
+     * 移除指定的元素
+     *
      * @param o element to be removed from this list, if present
      * @return {@code true} if this list contained the specified element
      */
     public boolean remove(Object o) {
+        // 这里没有加锁，如果并发访问的话，该 snapshot 可能会发生变化
         Object[] snapshot = getArray();
+        // 查找指定元素第一次出现的位置
         int index = indexOf(o, snapshot, 0, snapshot.length);
+        // 不得不佩服...
         return (index < 0) ? false : remove(o, snapshot, index);
     }
 
@@ -605,11 +610,18 @@ public class CopyOnWriteArrayList<E>
         // 加锁
         lock.lock();
         try {
+            // 获取原数组
             Object[] current = getArray();
             int len = current.length;
+            // TODO 重点理解这个快照
+            // 并发访问的情况下 snapshot 可能不等于 current，因为前面没加锁吗？
+            // 如果打断了 findIndex 该 if 后面的代码就不会执行了
             if (snapshot != current) findIndex: {
+                // 因为在多线程访问的情况下，len 不一定大于 index
+                // 如果 index >= len 那么移除的一定是数组中最后一个元素
                 int prefix = Math.min(index, len);
                 for (int i = 0; i < prefix; i++) {
+                    // 该条件可以假设为两个线程移除的是不相邻的元素
                     if (current[i] != snapshot[i] && eq(o, current[i])) {
                         index = i;
                         break findIndex;
@@ -617,12 +629,15 @@ public class CopyOnWriteArrayList<E>
                 }
                 if (index >= len)
                     return false;
+                // 如果移除的是最后一个元素，直接结束判断，此种情况下可以假设有两个线程移除的元素是最后面两个
                 if (current[index] == o)
                     break findIndex;
+                // TODO 这是一个什么条件下的补偿呢？
                 index = indexOf(o, current, index, len);
                 if (index < 0)
                     return false;
             }
+            // 分两次拷贝代码，下面就比较好理解了
             Object[] newElements = new Object[len - 1];
             System.arraycopy(current, 0, newElements, 0, index);
             System.arraycopy(current, index + 1,
@@ -675,11 +690,15 @@ public class CopyOnWriteArrayList<E>
     /**
      * Appends the element, if not present.
      *
+     * 如果不存在才添加元素
+     *
      * @param e element to be added to this list, if absent
      * @return {@code true} if the element was added
      */
     public boolean addIfAbsent(E e) {
+        // 因为这里不加锁，因此使用快照对象
         Object[] snapshot = getArray();
+        // 从头开始查找，如果该元素已存在，则返回 false，不存在才添加
         return indexOf(e, snapshot, 0, snapshot.length) >= 0 ? false :
             addIfAbsent(e, snapshot);
     }
@@ -689,25 +708,33 @@ public class CopyOnWriteArrayList<E>
      * recent snapshot does not contain e.
      */
     private boolean addIfAbsent(E e, Object[] snapshot) {
+        // 加锁
         final ReentrantLock lock = this.lock;
         lock.lock();
         try {
+            // 获取当前数组
             Object[] current = getArray();
             int len = current.length;
+            // 并发环境下造成的不一致情况
             if (snapshot != current) {
                 // Optimize for lost race to another addXXX operation
                 int common = Math.min(snapshot.length, len);
+                // 可以分两种情况考虑，1 添加的时候删除了元素 2 一直添加元素
                 for (int i = 0; i < common; i++)
+                    // 如果添加的元素在原数组中存在，则结束循环
                     if (current[i] != snapshot[i] && eq(e, current[i]))
                         return false;
+                    // 和上面的 for 循环正好组成一个数组大小，用于判断原数组中是否已经存在添加的元素
                 if (indexOf(e, current, common, len) >= 0)
                         return false;
             }
+            // 要添加的元素在愿数组中不存在
             Object[] newElements = Arrays.copyOf(current, len + 1);
             newElements[len] = e;
             setArray(newElements);
             return true;
         } finally {
+            // 释放锁
             lock.unlock();
         }
     }
@@ -715,6 +742,8 @@ public class CopyOnWriteArrayList<E>
     /**
      * Returns {@code true} if this list contains all of the elements of the
      * specified collection.
+     *
+     * 判断是否包含指定集合的所有元素
      *
      * @param c collection to be checked for containment in this list
      * @return {@code true} if this list contains all of the elements of the
@@ -725,6 +754,7 @@ public class CopyOnWriteArrayList<E>
     public boolean containsAll(Collection<?> c) {
         Object[] elements = getArray();
         int len = elements.length;
+        // 逐个遍历，进行判断
         for (Object e : c) {
             if (indexOf(e, elements, 0, len) < 0)
                 return false;
@@ -751,6 +781,7 @@ public class CopyOnWriteArrayList<E>
     public boolean removeAll(Collection<?> c) {
         if (c == null) throw new NullPointerException();
         final ReentrantLock lock = this.lock;
+        // 对啊，直接加锁多省事，easy
         lock.lock();
         try {
             Object[] elements = getArray();
@@ -860,11 +891,14 @@ public class CopyOnWriteArrayList<E>
     /**
      * Removes all of the elements from this list.
      * The list will be empty after this call returns.
+     *
+     * 移除所有元素
      */
     public void clear() {
         final ReentrantLock lock = this.lock;
         lock.lock();
         try {
+            // 重置原数组
             setArray(new Object[0]);
         } finally {
             lock.unlock();

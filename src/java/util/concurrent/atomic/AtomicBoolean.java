@@ -60,6 +60,9 @@ public class AtomicBoolean implements java.io.Serializable {
         } catch (Exception ex) { throw new Error(ex); }
     }
 
+    /**
+     * 0：false 1：true
+     */
     private volatile int value;
 
     /**
@@ -142,12 +145,16 @@ public class AtomicBoolean implements java.io.Serializable {
     /**
      * Atomically sets to the given value and returns the previous value.
      *
+     * 现获取值再设置
+     *
      * @param newValue the new value
      * @return the previous value
      */
     public final boolean getAndSet(boolean newValue) {
         boolean prev;
         do {
+            // 并发情况下，别的线程对内存值进行修改后，可能导致预期值与内存值一直
+            // 把获取到的内存值当作预期值，进行循环判断，当内存值与预期值相同时结束循环
             prev = get();
         } while (!compareAndSet(prev, newValue));
         return prev;

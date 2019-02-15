@@ -52,7 +52,8 @@
 
 看了上面的代码就比较明了了，在更新值之前都会先获取内存中的值，把该内存值当作预期值进行比较。假如有线程把内存中的值修改了，那么预期值与内存值就会不一致，接着继续进行循环判断，直到内存值与预期值一致时才更新内存值，这样就能保证原子性。
 
-那么 CAS 底层又是怎么保证原子操作的呢，具体可以移步参考这篇文章：
-[https://www.jianshu.com/p/bd68ddf91240](https://www.jianshu.com/p/bd68ddf91240)
+那么 CAS 底层又是怎么保证原子操作的呢，具体可以移步参考下面的文章：<br>
+[https://www.jianshu.com/p/bd68ddf91240](https://www.jianshu.com/p/bd68ddf91240)<br>
+[https://blog.csdn.net/v123411739/article/details/79561458](https://blog.csdn.net/v123411739/article/details/79561458)
 
 

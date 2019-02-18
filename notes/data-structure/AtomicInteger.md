@@ -56,4 +56,7 @@
 [https://www.jianshu.com/p/bd68ddf91240](https://www.jianshu.com/p/bd68ddf91240)<br>
 [https://blog.csdn.net/v123411739/article/details/79561458](https://blog.csdn.net/v123411739/article/details/79561458)
 
-
+CAS 的问题：
+- ABA 问题。jdk1.5 开始提供了 `AtomicStampedReference` 类来解决 ABA 问题，具体操作封装在 `compareAndSet()` 中。 `compareAndSet()` 首先检查当前引用和当前标志与预期引用和预期标志是否相等，如果都相等，则以原子方式将 引用值和标志的值设置为给定的更新值。
+- 循环时间长开销大。CAS 操作如果长时间不成功，会导致其一直自旋，给 CPU 带来非常大的开销。
+- 只能保证一个共享变量的原子操作。jdk1.5 开始提供了 AtomicReference 类来保证引用对象之间的原子性，可以把多个变量放在一个对象里 来进行 CAS 操作。

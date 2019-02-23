@@ -933,7 +933,7 @@ public abstract class AbstractQueuedSynchronizer
             for (;;) {
                 // 获取前驱节点
                 final Node p = node.predecessor();
-                // 如果前驱节点式头节点，且获取同步状态成功
+                // 如果前驱节点是头节点，且获取同步状态成功
                 if (p == head && tryAcquire(arg)) {
                     // 重置头节点为当前节点
                     setHead(node);
@@ -943,7 +943,7 @@ public abstract class AbstractQueuedSynchronizer
                     failed = false;
                     return interrupted;
                 }
-                // 获取失败，线程等待
+                // 判断线程是否需要等待
                 if (shouldParkAfterFailedAcquire(p, node) &&
                         parkAndCheckInterrupt())
                     interrupted = true;

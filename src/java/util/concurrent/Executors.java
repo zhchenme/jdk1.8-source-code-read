@@ -81,6 +81,10 @@ public class Executors {
      * execute subsequent tasks.  The threads in the pool will exist
      * until it is explicitly {@link ExecutorService#shutdown shutdown}.
      *
+     * 创建可重用且固定线程数的线程池，如果线程池中的所有线程都处于活动状态，
+     * 此时再提交任务就在队列中等待，直到有可用线程；
+     * 如果线程池中的某个线程由于异常而结束时，线程池就会再补充一条新线程。
+     *
      * @param nThreads the number of threads in the pool
      * @return the newly created thread pool
      * @throws IllegalArgumentException if {@code nThreads <= 0}
@@ -165,6 +169,8 @@ public class Executors {
      * {@code newFixedThreadPool(1)} the returned executor is
      * guaranteed not to be reconfigurable to use additional threads.
      *
+     * 创建一个单线程的Executor，如果该线程因为异常而结束就新建一条线程来继续执行后续的任务
+     *
      * @return the newly created single-threaded Executor
      */
     public static ExecutorService newSingleThreadExecutor() {
@@ -209,6 +215,9 @@ public class Executors {
      * not consume any resources. Note that pools with similar
      * properties but different details (for example, timeout parameters)
      * may be created using {@link ThreadPoolExecutor} constructors.
+     *
+     * 建可缓存的线程池，如果线程池中的线程在60秒未被使用就将被移除，因此，长时间闲置的线程将不会消耗任何资源
+     * 在执行新的任务时，当线程池中有之前创建的可用线程就重用可用线程，否则就新建一条线程
      *
      * @return the newly created thread pool
      */
@@ -276,6 +285,9 @@ public class Executors {
     /**
      * Creates a thread pool that can schedule commands to run after a
      * given delay, or to execute periodically.
+     *
+     * 创建一个可延迟执行或定期执行的线程池
+     *
      * @param corePoolSize the number of threads to keep in the pool,
      * even if they are idle
      * @return a newly created scheduled thread pool

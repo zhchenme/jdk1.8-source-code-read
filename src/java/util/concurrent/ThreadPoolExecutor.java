@@ -440,6 +440,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * queues such as DelayQueues for which poll() is allowed to
      * return null even if it may later return non-null when delays
      * expire.
+     *
+     * 用于保存和切换线程的队列
      */
     private final BlockingQueue<Runnable> workQueue;
 
@@ -461,6 +463,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     /**
      * Set containing all worker threads in pool. Accessed only when
      * holding mainLock.
+     *
+     * 保存所有的工作线程
      */
     private final HashSet<Worker> workers = new HashSet<Worker>();
 
@@ -470,6 +474,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     private final Condition termination = mainLock.newCondition();
 
     /**
+     * 线程池最大线程数
+     *
      * Tracks largest attained pool size. Accessed only under
      * mainLock.
      */
@@ -478,6 +484,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     /**
      * Counter for completed tasks. Updated only on termination of
      * worker threads. Accessed only under mainLock.
+     *
+     * 任务完成计时器
      */
     private long completedTaskCount;
 
@@ -509,6 +517,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 
     /**
      * Handler called when saturated or shutdown in execute.
+     *
+     * 拒绝策略对象
      */
     private volatile RejectedExecutionHandler handler;
 
@@ -517,6 +527,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * Threads use this timeout when there are more than corePoolSize
      * present or if allowCoreThreadTimeOut. Otherwise they wait
      * forever for new work.
+     *
+     * 线程终止时间限制
      */
     private volatile long keepAliveTime;
 
@@ -524,6 +536,9 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * If false (default), core threads stay alive even when idle.
      * If true, core threads use keepAliveTime to time out waiting
      * for work.
+     *
+     * 如果为 false，核心线程即使在空闲状态也会保持活跃
+     * 如果为 true，核心线程将使用 keepAliveTime
      */
     private volatile boolean allowCoreThreadTimeOut;
 
@@ -531,17 +546,23 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * Core pool size is the minimum number of workers to keep alive
      * (and not allow to time out etc) unless allowCoreThreadTimeOut
      * is set, in which case the minimum is zero.
+     *
+     * 核心线程数
      */
     private volatile int corePoolSize;
 
     /**
      * Maximum pool size. Note that the actual maximum is internally
      * bounded by CAPACITY.
+     *
+     * 最大线程数
      */
     private volatile int maximumPoolSize;
 
     /**
      * The default rejected execution handler
+     *
+     * 默认的拒绝策略-丢弃任务并抛出异常
      */
     private static final RejectedExecutionHandler defaultHandler =
         new AbortPolicy();
@@ -1186,6 +1207,14 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      *         {@code maximumPoolSize <= 0}<br>
      *         {@code maximumPoolSize < corePoolSize}
      * @throws NullPointerException if {@code workQueue} is null
+     */
+    /**
+     *
+     * @param corePoolSize    核心线程数
+     * @param maximumPoolSize 最大线程数
+     * @param keepAliveTime   没有任务执行时终止时间
+     * @param unit            keepAliveTime 的时间单位
+     * @param workQueue       阻塞队列
      */
     public ThreadPoolExecutor(int corePoolSize,
                               int maximumPoolSize,

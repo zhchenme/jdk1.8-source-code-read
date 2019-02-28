@@ -125,39 +125,63 @@ public class ReentrantLock implements Lock, java.io.Serializable {
         /**
          * Performs non-fair tryLock.  tryAcquire is implemented in
          * subclasses, but both need nonfair try for trylock method.
+         *
+         * 独占模式下尝试获取锁
          */
         final boolean nonfairTryAcquire(int acquires) {
             final Thread current = Thread.currentThread();
+            // 获取同步状态
             int c = getState();
+            // 0 表示无状态，独占锁模式下可理解为没有锁重入
             if (c == 0) {
+                // 更新同步状态值
                 if (compareAndSetState(0, acquires)) {
+                    // 独占式设置当前线程
                     setExclusiveOwnerThread(current);
                     return true;
                 }
             }
+            // 设置独占锁可重入
             else if (current == getExclusiveOwnerThread()) {
                 int nextc = c + acquires;
                 if (nextc < 0) // overflow
                     throw new Error("Maximum lock count exceeded");
+                // 重新设置修改后同步的状态值
                 setState(nextc);
                 return true;
             }
+            // 获取失败
             return false;
         }
 
+        /**
+         * 独占模式下尝试释放锁
+         *
+         * @param releases
+         * @return
+         */
         protected final boolean tryRelease(int releases) {
+            // 减小同步状态
             int c = getState() - releases;
+            // 不是独占式抛出异常
             if (Thread.currentThread() != getExclusiveOwnerThread())
                 throw new IllegalMonitorStateException();
             boolean free = false;
+            // 如果同步状态只为 0，表示可以释放资源，后面的线程可以尝试去获取锁
             if (c == 0) {
                 free = true;
                 setExclusiveOwnerThread(null);
             }
+            // 更新减小后的同步状态值
             setState(c);
             return free;
         }
 
+        /**
+         * 判断是否为独占锁
+         *
+         * @return
+         */
         protected final boolean isHeldExclusively() {
             // While we must in general read state before owner,
             // we don't need to do so to check if current thread is owner
@@ -170,14 +194,29 @@ public class ReentrantLock implements Lock, java.io.Serializable {
 
         // Methods relayed from outer class
 
+        /**
+         * 返回获取锁的线程，如果该线程已释放资源返回 null
+         *
+         * @return
+         */
         final Thread getOwner() {
             return getState() == 0 ? null : getExclusiveOwnerThread();
         }
 
+        /**
+         * 返回当前线程的同步状态值
+         *
+         * @return
+         */
         final int getHoldCount() {
             return isHeldExclusively() ? getState() : 0;
         }
 
+        /**
+         * 同步状态值处于非 0 值时表示获取到了锁
+         *
+         * @return
+         */
         final boolean isLocked() {
             return getState() != 0;
         }
@@ -194,6 +233,8 @@ public class ReentrantLock implements Lock, java.io.Serializable {
 
     /**
      * Sync object for non-fair locks
+     *
+     * 非公平模式下的同步类
      */
     static final class NonfairSync extends Sync {
         private static final long serialVersionUID = 7316153563782823691L;
@@ -201,14 +242,24 @@ public class ReentrantLock implements Lock, java.io.Serializable {
         /**
          * Performs lock.  Try immediate barge, backing up to normal
          * acquire on failure.
+         *
+         * 加锁
          */
         final void lock() {
+            // 无锁重入，第一次尝试修改同步状态值
             if (compareAndSetState(0, 1))
                 setExclusiveOwnerThread(Thread.currentThread());
             else
+                // 锁重入，同步状态值 + 1
                 acquire(1);
         }
 
+        /**
+         * 尝试获取锁，直接调用 Sync 中的 nonfairTryAcquire 方法即可
+         *
+         * @param acquires
+         * @return
+         */
         protected final boolean tryAcquire(int acquires) {
             return nonfairTryAcquire(acquires);
         }
@@ -216,10 +267,15 @@ public class ReentrantLock implements Lock, java.io.Serializable {
 
     /**
      * Sync object for fair locks
+     *
+     * 公平锁
      */
     static final class FairSync extends Sync {
         private static final long serialVersionUID = -3000897897090466540L;
 
+        /**
+         * 加锁
+         */
         final void lock() {
             acquire(1);
         }
@@ -227,21 +283,30 @@ public class ReentrantLock implements Lock, java.io.Serializable {
         /**
          * Fair version of tryAcquire.  Don't grant access unless
          * recursive call or no waiters or is first.
+         *
+         * 尝试获取锁
          */
         protected final boolean tryAcquire(int acquires) {
+            // 获取当前线程
             final Thread current = Thread.currentThread();
+            // 获取同步状态值
             int c = getState();
+            // 在同步状态为 0 的情况下并不是所有线程都可以去获取同步状态，等待时间长的线程会优先获取同步状态
             if (c == 0) {
+                // 如果队列中没有等待时间比当前线程时间长的线程，更新同步状态值
                 if (!hasQueuedPredecessors() &&
                     compareAndSetState(0, acquires)) {
+                    // 设置当前线程独占该锁
                     setExclusiveOwnerThread(current);
                     return true;
                 }
             }
+            // 保证锁可重入
             else if (current == getExclusiveOwnerThread()) {
                 int nextc = c + acquires;
                 if (nextc < 0)
                     throw new Error("Maximum lock count exceeded");
+                // 更新同步状态值
                 setState(nextc);
                 return true;
             }
@@ -252,6 +317,8 @@ public class ReentrantLock implements Lock, java.io.Serializable {
     /**
      * Creates an instance of {@code ReentrantLock}.
      * This is equivalent to using {@code ReentrantLock(false)}.
+     *
+     * 默认创建一个非公平锁
      */
     public ReentrantLock() {
         sync = new NonfairSync();
@@ -260,6 +327,8 @@ public class ReentrantLock implements Lock, java.io.Serializable {
     /**
      * Creates an instance of {@code ReentrantLock} with the
      * given fairness policy.
+     *
+     * 自定义公平锁或者非公平锁
      *
      * @param fair {@code true} if this lock should use a fair ordering policy
      */

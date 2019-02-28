@@ -801,7 +801,7 @@ public abstract class AbstractQueuedSynchronizer
     /**
      * Cancels an ongoing attempt to acquire.
      *
-     *
+     * 放弃获取同步状态
      *
      * @param node the node
      */
@@ -944,7 +944,7 @@ public abstract class AbstractQueuedSynchronizer
      *
      *
      * TODO 这里自旋要怎么理解，如果获取到了同步状态返回？如果没有获取到同步状态是一直尝试获取还是将前置节点的状态设置为 SIGNAL 然后自己调用 park 阻塞然后等待被唤醒
-     * TODO 节点是一直自旋还是自旋一段事件后就进入睡眠状态？
+     * TODO 节点是一直自旋还是自旋一段时间后就进入睡眠状态？
      *
      * @param node the node
      * @param arg the acquire argument
@@ -978,7 +978,7 @@ public abstract class AbstractQueuedSynchronizer
                     interrupted = true;
             }
         } finally {
-            // 获取过程中发生异常并且没有获取到同步状态，则取消获取
+            // 获取过程中发生异常并且没有获取到同步状态，则取消获取（也可以理解为自旋过程中一直没有获取到同步状态）
             if (failed)
                 cancelAcquire(node);
         }

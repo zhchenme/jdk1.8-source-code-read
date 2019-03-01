@@ -26,7 +26,7 @@
 2.5 DelayQueue <br>
 [2.6 CopyOnWriteArrayList](https://zchen96.github.io/2019/02/15/CopyOnWriteArrayList%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/) <br>
 [2.7 AtomicInteger](notes/data-structure/AtomicInteger.md)  <br>
-2.8 AQS <br>
+[2.8 AQS](notes/data-structure/AQS.md) <br>
 2.9 ReentrantLock <br>
 2.10 CountDownLock <br>
 2.11 CyclicBarrier <br>

@@ -161,6 +161,11 @@ public class CountDownLatch {
     private static final class Sync extends AbstractQueuedSynchronizer {
         private static final long serialVersionUID = 4982264981922014374L;
 
+        /**
+         * 初始化闭锁 count 值
+         *
+         * @param count
+         */
         Sync(int count) {
             setState(count);
         }
@@ -169,17 +174,32 @@ public class CountDownLatch {
             return getState();
         }
 
+        /**
+         * 通过共享方式尝试获取锁
+         *
+         * @param acquires
+         * @return
+         */
         protected int tryAcquireShared(int acquires) {
             return (getState() == 0) ? 1 : -1;
         }
 
+        /**
+         * 通过共享方式尝试释放锁
+         *
+         * @param releases
+         * @return
+         */
         protected boolean tryReleaseShared(int releases) {
             // Decrement count; signal when transition to zero
             for (;;) {
                 int c = getState();
+                // 同步状态值在上一次置 0 时已经放行，因此返回 false
                 if (c == 0)
                     return false;
+                // 同步状态值 - 1
                 int nextc = c-1;
+                // 为 0 时返回 true
                 if (compareAndSetState(c, nextc))
                     return nextc == 0;
             }
@@ -197,6 +217,7 @@ public class CountDownLatch {
      */
     public CountDownLatch(int count) {
         if (count < 0) throw new IllegalArgumentException("count < 0");
+        // 初始化 count 值
         this.sync = new Sync(count);
     }
 
@@ -228,6 +249,8 @@ public class CountDownLatch {
      *         while waiting
      */
     public void await() throws InterruptedException {
+        // 检查是否中断，如果中断抛出异常
+        // 调用 tryAcquireShared 方法尝试获取同步状态，当闭锁内的线程执行完毕后尝试获取成功，直接返回
         sync.acquireSharedInterruptibly(1);
     }
 
@@ -285,6 +308,8 @@ public class CountDownLatch {
      * If the new count is zero then all waiting threads are re-enabled for
      * thread scheduling purposes.
      *
+     * 同步状态值 - 1
+     *
      * <p>If the current count equals zero then nothing happens.
      */
     public void countDown() {
@@ -293,6 +318,8 @@ public class CountDownLatch {
 
     /**
      * Returns the current count.
+     *
+     * 返回 count 值
      *
      * <p>This method is typically used for debugging and testing purposes.
      *

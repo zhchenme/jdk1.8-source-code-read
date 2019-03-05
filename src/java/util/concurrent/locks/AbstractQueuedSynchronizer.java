@@ -946,6 +946,8 @@ public abstract class AbstractQueuedSynchronizer
      * TODO 这里自旋要怎么理解，如果获取到了同步状态返回？如果没有获取到同步状态是一直尝试获取还是将前置节点的状态设置为 SIGNAL 然后自己调用 park 阻塞然后等待被唤醒
      * TODO 节点是一直自旋还是自旋一段时间后就进入睡眠状态？
      *
+     * solution:节点被移出队列（或停止自旋）的条件是前驱节点为头节点且成功的获取了同步状态
+     *
      * @param node the node
      * @param arg the acquire argument
      * @return {@code true} if interrupted while waiting

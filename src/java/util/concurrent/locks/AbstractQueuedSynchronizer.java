@@ -823,7 +823,7 @@ public abstract class AbstractQueuedSynchronizer
         // predNext is the apparent node to unsplice. CASes below will
         // fail if not, in which case, we lost race vs another cancel
         // or signal, so no further action is necessary.
-        // TODO predNext = node?
+        // predNext = node?
         Node predNext = pred.next;
 
         // Can use unconditional write instead of CAS here.
@@ -856,6 +856,7 @@ public abstract class AbstractQueuedSynchronizer
             }
 
             // 指向自己，GC 回收
+            // TODO 这里 next 指针指向自己可以结合下面释放同步状态后从后往前寻找需要唤醒的节点
             node.next = node; // help GC
         }
     }
@@ -1657,6 +1658,8 @@ public abstract class AbstractQueuedSynchronizer
         Node t = tail; // Read fields in reverse initialization order
         Node h = head;
         Node s;
+        // s 表示头节点的后继节点，如果头节点的后继节点不是当前线程的节点，
+        // 表示当前线程并非较先加入队列的线程，因此不能成功获取同步状态
         return h != t &&
                 ((s = h.next) == null || s.thread != Thread.currentThread());
     }

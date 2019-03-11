@@ -226,6 +226,9 @@ public class ReentrantReadWriteLock
      * Creates a new {@code ReentrantReadWriteLock} with
      * default (nonfair) ordering properties.
      */
+    /**
+     * 默认为非公平锁
+     */
     public ReentrantReadWriteLock() {
         this(false);
     }
@@ -265,8 +268,23 @@ public class ReentrantReadWriteLock
         static final int EXCLUSIVE_MASK = (1 << SHARED_SHIFT) - 1;
 
         /** Returns the number of shared holds represented in count  */
+        /**
+         * 共享锁当前重入的次数
+         *
+         * @param c
+         * @return
+         */
         static int sharedCount(int c)    { return c >>> SHARED_SHIFT; }
         /** Returns the number of exclusive holds represented in count  */
+
+        /**
+         * 独占锁当前重入的次数
+         *
+         * EXCLUSIVE_MASK = 35
+         *
+         * @param c
+         * @return
+         */
         static int exclusiveCount(int c) { return c & EXCLUSIVE_MASK; }
 
         /**
@@ -294,6 +312,10 @@ public class ReentrantReadWriteLock
          * The number of reentrant read locks held by current thread.
          * Initialized only in constructor and readObject.
          * Removed whenever a thread's read hold count drops to 0.
+         */
+        /**
+         * 当前线程持有的可重入读锁的数量
+         * 当为 0 时删除
          */
         private transient ThreadLocalHoldCounter readHolds;
 
@@ -335,7 +357,9 @@ public class ReentrantReadWriteLock
         private transient int firstReaderHoldCount;
 
         Sync() {
+            // 初始化读锁重入数量计数器
             readHolds = new ThreadLocalHoldCounter();
+            // 设置同步状态值
             setState(getState()); // ensures visibility of readHolds
         }
 
@@ -366,17 +390,39 @@ public class ReentrantReadWriteLock
          * condition wait and re-established in tryAcquire.
          */
 
+        /**
+         * 写锁尝试释放同步状态
+         *
+         * 1.如果获取到锁的线程不是当前线程则抛出异常
+         * 2.如果同步状态为 0 表示可以释放同步状态（为 0 前提是没有读锁也没有写锁）
+         * 3.如果释放锁成功，则把同步状态重新归 0
+         */
         protected final boolean tryRelease(int releases) {
+            // 判断当前线程是否独占，不是直接抛出异常
             if (!isHeldExclusively())
                 throw new IllegalMonitorStateException();
+            // 减小写锁同步状态
             int nextc = getState() - releases;
+            // 是否释放成功，nextc 如果为 0 表示释放成功
             boolean free = exclusiveCount(nextc) == 0;
             if (free)
+                // 释放同步状态
                 setExclusiveOwnerThread(null);
+            // 重置同步状态
             setState(nextc);
             return free;
         }
 
+        //
+
+        /**
+         * 写锁获取同步状态
+         *
+         * 1.获取同步状态
+         * 2.同步状态不为 0 表示有读锁或者写锁（写锁又分两种情况，1 其他写锁 2 当前写锁重入）
+         * 3.如果同步状态不为 0 切重入次数为 0，表示没有读锁，则要判断是否是当前线程锁重入
+         * 4.同步状态为0，则当前写线程成功获取同步状态，并设置当前独占的线程，更新同步状态后返回
+         */
         protected final boolean tryAcquire(int acquires) {
             /*
              * Walkthrough:
@@ -391,46 +437,73 @@ public class ReentrantReadWriteLock
              */
             Thread current = Thread.currentThread();
             int c = getState();
+            // 获取独占锁重入的次数
             int w = exclusiveCount(c);
+            // c = getState() 不为 0 表示存在读锁或者当前锁已重入
             if (c != 0) {
                 // (Note: if c != 0 and w == 0 then shared count != 0)
+                // TODO 重点理解...
+                // w == 0 表示读锁存在，因为没有独占的写锁，如果读锁存在，写锁必须等所有读锁释放后才能获取成功，因此返回 false
+                // 如果当前线程不是已经获取写锁的线程，则获取失败，因为其他写线程已经获取到了锁
                 if (w == 0 || current != getExclusiveOwnerThread())
                     return false;
+                // 同一个写锁超过最大重入次数抛出异常
                 if (w + exclusiveCount(acquires) > MAX_COUNT)
                     throw new Error("Maximum lock count exceeded");
                 // Reentrant acquire
+                // 重置状态值
                 setState(c + acquires);
                 return true;
             }
+            // state 为 0
             if (writerShouldBlock() ||
                 !compareAndSetState(c, c + acquires))
                 return false;
+            // 设置当前独占的线程
             setExclusiveOwnerThread(current);
             return true;
         }
 
+        /**
+         * 读锁释放同步状态
+         *
+         * 1.如果当前尝试释放锁的是第一个读线程，则判断其重入次数，如果重入次数为 1 表示可以释放，否则减小同步状态值
+         * 2.如果尝试释放锁的不是第一个线程，则获取缓存中的重入次数计数器对象，获取到当前线程的重入次数，同上，只不过当没有重入时需要移除当前的 ThreadLocalMap
+         * 3.无论尝试释放锁的线程是不是第一个获取读锁的线程，都需要修改同步状态值
+         */
         protected final boolean tryReleaseShared(int unused) {
             Thread current = Thread.currentThread();
+            // 如果当前线程是第一个读线程，
             if (firstReader == current) {
                 // assert firstReaderHoldCount > 0;
+                // 如果第一个读锁重入的次数为 1，则表示可以释放
                 if (firstReaderHoldCount == 1)
                     firstReader = null;
                 else
+                    // 如果当前线程重入次数大雨 1，则需要减小重入次数值
                     firstReaderHoldCount--;
             } else {
+                // 获取缓存的读锁重入计数器
                 HoldCounter rh = cachedHoldCounter;
+                // 通过 ThreadLocalMap 获取当前读线程重入的计数器对象
                 if (rh == null || rh.tid != getThreadId(current))
                     rh = readHolds.get();
+                // 当前读锁重入次数
                 int count = rh.count;
+                // 没有读锁重入时，移除当前线程的 ThreadLocalMap
                 if (count <= 1) {
                     readHolds.remove();
                     if (count <= 0)
                         throw unmatchedUnlockException();
                 }
+                // 减小当前读线程对应的重入次数
                 --rh.count;
             }
+            // 自旋，更新同步状态值
             for (;;) {
                 int c = getState();
+                // SHARED_UNIT = 32
+                // TODO 为什么 - 32？
                 int nextc = c - SHARED_UNIT;
                 if (compareAndSetState(c, nextc))
                     // Releasing the read lock has no effect on readers,
@@ -445,6 +518,7 @@ public class ReentrantReadWriteLock
                 "attempt to unlock read lock, not locked by current thread");
         }
 
+        // 读锁尝试获取同步状态
         protected final int tryAcquireShared(int unused) {
             /*
              * Walkthrough:
@@ -463,6 +537,7 @@ public class ReentrantReadWriteLock
              */
             Thread current = Thread.currentThread();
             int c = getState();
+            // 如果存在写线程，则尝试获取同步状态失败
             if (exclusiveCount(c) != 0 &&
                 getExclusiveOwnerThread() != current)
                 return -1;

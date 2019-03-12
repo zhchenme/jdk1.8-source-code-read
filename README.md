@@ -28,6 +28,6 @@
 [2.7 AtomicInteger](notes/data-structure/AtomicInteger.md)  <br>
 [2.8 AQS](notes/data-structure/AQS.md) <br>
 [2.9 ReentrantLock](https://zchen96.github.io/2019/03/07/ReentrantLock-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/) <br>
-2.10 CountDownLock <br>
+[2.10 CountDownLock](notes/data-structure/CountDownLatch.md) <br>
 2.11 CyclicBarrier <br>
 

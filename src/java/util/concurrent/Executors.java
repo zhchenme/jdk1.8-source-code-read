@@ -1,36 +1,21 @@
-/*
- * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+/**
+ * a smaple from https://www.cnblogs.com/dolphin0520/p/3932921.html
+ *
+ * 　  假如有一个工厂，工厂里面有10个工人，每个工人同时只能做一件任务。
+ *
+ * 　　因此只要当10个工人中有工人是空闲的，来了任务就分配给空闲的工人做；
+ *
+ * 　　当10个工人都有任务在做时，如果还来了任务，就把任务进行排队等待；
+ *
+ * 　　如果说新任务数目增长的速度远远大于工人做任务的速度，那么此时工厂主管可能会想补救措施，比如重新招4个临时工人进来；
+ *
+ * 　　然后就将任务也分配给这4个临时工人做；
+ *
+ * 　　如果说着14个工人做任务的速度还是不够，此时工厂主管可能就要考虑不再接收新的任务或者抛弃前面的一些任务了。
+ *
+ * 　　当这14个工人当中有人空闲时，而新任务增长的速度又比较缓慢，工厂主管可能就考虑辞掉4个临时工了，只保持原来的10个工人，毕竟请额外的工人是要花钱的。
  *
  *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- */
-
-/*
- *
- *
- *
- *
- *
- * Written by Doug Lea with assistance from members of JCP JSR-166
- * Expert Group and released to the public domain, as explained at
- * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
 package java.util.concurrent;

@@ -374,13 +374,19 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * that workerCount is 0 (which sometimes entails a recheck -- see
      * below).
      */
+    // 状态控制变量，默认是一个负数
     private final AtomicInteger ctl = new AtomicInteger(ctlOf(RUNNING, 0));
+    // COUNT_BITS = 29
     private static final int COUNT_BITS = Integer.SIZE - 3;
+    // 容量
     private static final int CAPACITY   = (1 << COUNT_BITS) - 1;
 
     // runState is stored in the high-order bits
+    // 运行状态 RUNNING = -536 870 912
     private static final int RUNNING    = -1 << COUNT_BITS;
+    // 线程池不接收新的任务，但会处理已添加的任务 SHUTDOWN = 0
     private static final int SHUTDOWN   =  0 << COUNT_BITS;
+    // 不接收新任务且不处理已添加的任务
     private static final int STOP       =  1 << COUNT_BITS;
     private static final int TIDYING    =  2 << COUNT_BITS;
     private static final int TERMINATED =  3 << COUNT_BITS;
@@ -915,8 +921,10 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     private boolean addWorker(Runnable firstTask, boolean core) {
         retry:
         for (;;) {
+            // 获取控制状态值
             int c = ctl.get();
-            int rs = runStateOf(c);
+            // 获取当前线程状态
+            int rs = runStateOf(c);1
 
             // Check if queue empty only if necessary.
             if (rs >= SHUTDOWN &&
@@ -1214,7 +1222,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * @param maximumPoolSize 最大线程数
      * @param keepAliveTime   没有任务执行时终止时间
      * @param unit            keepAliveTime 的时间单位
-     * @param workQueue       阻塞队列
+     * @param workQueue       保存任务的阻塞队列
      */
     public ThreadPoolExecutor(int corePoolSize,
                               int maximumPoolSize,
@@ -1322,6 +1330,17 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * @throws NullPointerException if {@code workQueue}
      *         or {@code threadFactory} or {@code handler} is null
      */
+
+    /**
+     *
+     * @param corePoolSize    核心线程池大小
+     * @param maximumPoolSize 最大线程池的大小
+     * @param keepAliveTime
+     * @param unit
+     * @param workQueue       保存任务的工作队列
+     * @param threadFactory   用于创建线程的共舱内
+     * @param handler         线程池关闭或者饱和（达到最大线程池的大小）时的拒绝策略
+     */
     public ThreadPoolExecutor(int corePoolSize,
                               int maximumPoolSize,
                               long keepAliveTime,
@@ -1358,7 +1377,9 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      *         cannot be accepted for execution
      * @throws NullPointerException if {@code command} is null
      */
+    // TODO
     public void execute(Runnable command) {
+        // 线程为 null 抛出异常
         if (command == null)
             throw new NullPointerException();
         /*
@@ -1382,6 +1403,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          * and so reject the task.
          */
         int c = ctl.get();
+        // 如果正在执行的线程小于核心线程数
         if (workerCountOf(c) < corePoolSize) {
             if (addWorker(command, true))
                 return;

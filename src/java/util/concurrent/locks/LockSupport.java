@@ -34,6 +34,7 @@
  */
 
 package java.util.concurrent.locks;
+// TODO 发现一个多余的导包
 import sun.misc.Unsafe;
 
 /**
@@ -165,6 +166,8 @@ public class LockSupport {
      * the thread to park in the first place. Callers may also determine,
      * for example, the interrupt status of the thread upon return.
      *
+     * 阻塞当前线程，只有当调用了 unpack 或被中断时才会从 park 中醒来
+     *
      * @param blocker the synchronization object responsible for this
      *        thread parking
      * @since 1.6
@@ -202,6 +205,8 @@ public class LockSupport {
      * the thread to park in the first place. Callers may also determine,
      * for example, the interrupt status of the thread, or the elapsed time
      * upon return.
+     *
+     * 在不超过指定的时间内阻塞当前线程
      *
      * @param blocker the synchronization object responsible for this
      *        thread parking

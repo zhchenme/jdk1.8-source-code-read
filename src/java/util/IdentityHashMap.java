@@ -375,9 +375,12 @@ public class IdentityHashMap<K,V>
             // key 相同返回 value
             if (item == k)
                 return (V) tab[i + 1];
+            // 如果找不到会一直向后查找，知道数组索引位置上没有 key 时停止
+            // 为什么 key 为 null 时停止查找呢，原因是，如果没有出现哈希冲突，那么根据 key 的哈希值一次就可以定位到要返回的 value
+            // 如果出现了哈希冲突，那么该键值与前面冲突的键值对之间一定是连续的
             if (item == null)
                 return null;
-            // 计算键位置，跳过 value
+            // 计算键位置，跳过 value，接着查找
             i = nextKeyIndex(i, len);
         }
     }
@@ -601,8 +604,10 @@ public class IdentityHashMap<K,V>
         Object k = maskNull(key);
         Object[] tab = table;
         int len = tab.length;
+        // 根据 key 的哈希值计算索引
         int i = hash(k, len);
 
+        // 这个过程与 get 方法类似
         while (true) {
             Object item = tab[i];
             if (item == k) {
@@ -610,10 +615,12 @@ public class IdentityHashMap<K,V>
                 size--;
                 @SuppressWarnings("unchecked")
                     V oldValue = (V) tab[i + 1];
-                // 把 key 和 value 置 null，让 GC 回收
+                // 下次 GC 回收
                 tab[i + 1] = null;
                 tab[i] = null;
-                // 调整哈希表
+                // 删除键值对后需要调整哈希表数组
+                // 为什么要调整哈希表数组呢，原因是因为后面键值对可能是因为哈希冲突添加进去的，
+                // 如果当前键值对移除了，那么后面因为哈希冲突添加的键值对就不能通过 get 方法获取了
                 closeDeletion(i);
                 return oldValue;
             }
@@ -621,7 +628,6 @@ public class IdentityHashMap<K,V>
                 return null;
             i = nextKeyIndex(i, len);
         }
-
     }
 
     /**
@@ -694,13 +700,12 @@ public class IdentityHashMap<K,V>
             // 当前桶位置计算出 key 的哈希值，这个哈希值并不一定等于 i
             int r = hash(item, len);
             /**
-             * r：理想的存放位置（计算哈希值直接插入数据，不移动）
-             * i：实际存放位置（可能移动，它的位置被占，只能向后移动，甚至可能移动到最前面）
-             * i == r：最佳存放位置
-             * TODO 这里理解的不是很好
+             * d：当前 key 所在的索引位置
+             * r：下一个 key 本来应该存放的位置
+             * i：下一个 key 实际存放位置（可能移动，它的位置被占，只能向后移动，甚至可能移动到最前面）
              */
             if ((i < r && (r <= d || d <= i)) || (r <= d && d <= i)) {
-                // 把后面的键值对移动到前面去
+                // 把后面的键值对移动到前面去，因为是一个环操作，当然也可能是把前面的键值对给移到后面去
                 tab[d] = item;
                 tab[d + 1] = tab[i + 1];
                 // 移动后置 null

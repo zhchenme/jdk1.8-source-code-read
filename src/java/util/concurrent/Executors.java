@@ -589,11 +589,15 @@ public class Executors {
 
     /**
      * The default thread factory
+     *
+     * 默认的创建线程的工厂
      */
     static class DefaultThreadFactory implements ThreadFactory {
         private static final AtomicInteger poolNumber = new AtomicInteger(1);
         private final ThreadGroup group;
+        // 线程池计数
         private final AtomicInteger threadNumber = new AtomicInteger(1);
+        // 线程名前缀
         private final String namePrefix;
 
         DefaultThreadFactory() {
@@ -606,11 +610,14 @@ public class Executors {
         }
 
         public Thread newThread(Runnable r) {
+            // 创建一个线程
             Thread t = new Thread(group, r,
                                   namePrefix + threadNumber.getAndIncrement(),
                                   0);
+            // 设置为非守护线程
             if (t.isDaemon())
                 t.setDaemon(false);
+            // 默认设置线程的优先级为默认值 5
             if (t.getPriority() != Thread.NORM_PRIORITY)
                 t.setPriority(Thread.NORM_PRIORITY);
             return t;

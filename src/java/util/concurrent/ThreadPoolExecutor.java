@@ -918,6 +918,14 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * state).
      * @return true if successful
      */
+
+    /**
+     * core 如果为 true 则使用核心线程数，如果为 false 则使用最大线程数
+     *
+     * @param firstTask
+     * @param core
+     * @return
+     */
     private boolean addWorker(Runnable firstTask, boolean core) {
         retry:
         for (;;) {
@@ -927,17 +935,16 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             int rs = runStateOf(c);1
 
             // Check if queue empty only if necessary.
-            if (rs >= SHUTDOWN &&
-                ! (rs == SHUTDOWN &&
-                   firstTask == null &&
-                   ! workQueue.isEmpty()))
+            if (rs >= SHUTDOWN && ! (rs == SHUTDOWN && firstTask == null && ! workQueue.isEmpty()))
                 return false;
 
             for (;;) {
+                // 获得正在执行的线程数
                 int wc = workerCountOf(c);
-                if (wc >= CAPACITY ||
-                    wc >= (core ? corePoolSize : maximumPoolSize))
+                // 如果正在执行的线程数大于最大值，或者大于核心线程数或最大线程数则返回 false
+                if (wc >= CAPACITY || wc >= (core ? corePoolSize : maximumPoolSize))
                     return false;
+                // 添加线程成功后结束循环
                 if (compareAndIncrementWorkerCount(c))
                     break retry;
                 c = ctl.get();  // Re-read ctl
@@ -1403,19 +1410,24 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          * and so reject the task.
          */
         int c = ctl.get();
-        // 如果正在执行的线程小于核心线程数
+        // 如果正在执行的线程小于核心线程数，则创建线程
         if (workerCountOf(c) < corePoolSize) {
             if (addWorker(command, true))
                 return;
             c = ctl.get();
         }
+        // 如果线程池正在执行且入队成功
         if (isRunning(c) && workQueue.offer(command)) {
+            // 用于检查线程池状态，因为上面可能入队失败
             int recheck = ctl.get();
+            // 如果线程池处于非运行状态，且尝试从队列中删除该线程成功，则执行拒绝策略
             if (! isRunning(recheck) && remove(command))
                 reject(command);
+            // 如果线程池中工作线程为 0（线程池已关闭），则添加一个空的任务
             else if (workerCountOf(recheck) == 0)
                 addWorker(null, false);
         }
+        // 如果入队失败，则创建线程，创建失败时执行拒绝策略
         else if (!addWorker(command, false))
             reject(command);
     }

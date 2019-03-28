@@ -480,7 +480,7 @@ public class ReentrantReadWriteLock
                 if (firstReaderHoldCount == 1)
                     firstReader = null;
                 else
-                    // 如果当前线程重入次数大雨 1，则需要减小重入次数值
+                    // 如果当前线程重入次数大于 1，则需要减小重入次数值
                     firstReaderHoldCount--;
             } else {
                 // 获取缓存的读锁重入计数器
@@ -520,6 +520,7 @@ public class ReentrantReadWriteLock
 
         /**
          * 读锁尝试获取同步状态
+         *
          * 1.如果存在写线程，则直接返回失败
          * 2.判断当前读线程是否需要阻塞，并且读锁的数量小于 31，切更新同步状态成功，则执行后续 3 操作，否则执行 4 操作
          * 3.判断当前线程是不是第一个获取读锁的线程，如果是则设置当前线程对应的信息（firstReader、firstReaderHoldCount），当然当前线程也可能重入
@@ -541,7 +542,7 @@ public class ReentrantReadWriteLock
              *    apparently not eligible or CAS fails or count
              *    saturated, chain to version with full retry loop.
              */
-            Thread current = Thread.currentThread();
+            Thread current = Thread.currentTh read();
             int c = getState();
             // 如果存在写线程，切获取写锁的线程不是当前线程，则尝试获取同步状态失败
             // 意为如果当前线程已经获取过写锁，那么它可以继续尝试去获取读锁
@@ -570,7 +571,7 @@ public class ReentrantReadWriteLock
                     firstReaderHoldCount++;
                 } else {
                     HoldCounter rh = cachedHoldCounter;
-                    // 当有两个读锁时，则初始化 cachedHoldCounter
+                    // 当有两个及以上的读锁时，则初始化 cachedHoldCounter
                     if (rh == null || rh.tid != getThreadId(current))
                         cachedHoldCounter = rh = readHolds.get();
                     // 当前读锁没有重入

@@ -929,7 +929,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * core 如果为 true 则使用核心线程数，如果为 false 则使用最大线程数
      *
      * @param firstTask 任务对象
-     * @param core      是否我 i核心线程数
+     * @param core      是否是核心线程数
      * @return
      */
     private boolean addWorker(Runnable firstTask, boolean core) {
@@ -952,7 +952,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                 // 如果正在执行的线程数大于最大值，或者大于核心线程数或最大线程数则返回 false
                 if (wc >= CAPACITY || wc >= (core ? corePoolSize : maximumPoolSize))
                     return false;
-                // 添加线程成功后结束循环
+                // 添加线程数成功后结束循环
                 if (compareAndIncrementWorkerCount(c))
                     break retry;
                 c = ctl.get();  // Re-read ctl
@@ -1477,6 +1477,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         try {
             checkShutdownAccess();
             advanceRunState(SHUTDOWN);
+            // 中断所有的正在执行的或暂停的 workers
             interruptIdleWorkers();
             onShutdown(); // hook for ScheduledThreadPoolExecutor
         } finally {
@@ -1500,6 +1501,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * cancels tasks via {@link Thread#interrupt}, so any task that
      * fails to respond to interrupts may never terminate.
      *
+     * 立刻关闭线程池
+     *
      * @throws SecurityException {@inheritDoc}
      */
     public List<Runnable> shutdownNow() {
@@ -1509,6 +1512,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         try {
             checkShutdownAccess();
             advanceRunState(STOP);
+            // 遍历中断所有的 workers
             interruptWorkers();
             tasks = drainQueue();
         } finally {

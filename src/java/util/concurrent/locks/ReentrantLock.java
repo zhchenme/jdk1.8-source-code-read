@@ -294,6 +294,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
             // 在同步状态为 0 的情况下并不是所有线程都可以去获取同步状态，等待时间长的线程会优先获取同步状态
             if (c == 0) {
                 // 如果队列中没有等待时间比当前线程时间长的线程，更新同步状态值
+                // TODO 与公平锁最大的区别在于每次调用 tryAcquire 方法的时候都会判断当前线程是否是队列中头节点的后继节点
                 if (!hasQueuedPredecessors() &&
                     compareAndSetState(0, acquires)) {
                     // 设置当前线程独占该锁

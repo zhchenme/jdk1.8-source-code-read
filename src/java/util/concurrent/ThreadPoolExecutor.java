@@ -647,6 +647,9 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         }
 
         /** Delegates main run loop to outer runWorker  */
+        /**
+         * 重写 Runnable 接口中的 run 方法
+         */
         public void run() {
             runWorker(this);
         }
@@ -932,6 +935,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      */
 
     /**
+     * 线程池核心方法，用于创建线程和执行任务
      * core 如果为 true 则使用核心线程数，如果为 false 则使用最大线程数
      *
      * @param firstTask 任务对象
@@ -941,6 +945,10 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     private boolean addWorker(Runnable firstTask, boolean core) {
         retry:
         // 外层循环，检查线程池运行状态
+        /**
+         * 获取正在执行的线程数，如果线程数大于最大值，或 core 为 true 的情况下，执行的线程数大于核心线程数，则返回 false，为什么不是执行拒绝策略？
+         * 上述条件不满足，则添加线程数后结束循环判断，开始创建线程
+         */
         for (;;) {
             // 获取控制状态值
             int c = ctl.get();
@@ -1006,6 +1014,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                 // 如果添加成功，则开启线程
                 if (workerAdded) {
                     // TODO 为什么这里调用的是 start 方法？
+                    // 启动 worker 对应的线程
+                    // 当执行 start 方法启动线程 thread 时，本质是执行了 Worker 的 runWorker 方法
                     t.start();
                     workerStarted = true;
                 }
@@ -1191,7 +1201,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         w.unlock(); // allow interrupts
         boolean completedAbruptly = true;
         try {
-            // 从缓存的阻塞队列中获取任务执行
+            // 自旋从缓存的阻塞队列中获取任务执行
             while (task != null || (task = getTask()) != null) {
                 w.lock();
                 // If pool is stopping, ensure thread is interrupted;
@@ -1450,9 +1460,9 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                 return;
             c = ctl.get();
         }
-        // 如果线程池正在执行且入队成功
+        // 如果线程池正在执行则把任务加入队列
         if (isRunning(c) && workQueue.offer(command)) {
-            // 用于检查线程池状态，因为上面可能入队失败
+            // 用于检查线程池状态
             int recheck = ctl.get();
             // 如果线程池处于非运行状态，且尝试从队列中删除该线程成功，则执行拒绝策略
             if (! isRunning(recheck) && remove(command))
@@ -1461,7 +1471,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             else if (workerCountOf(recheck) == 0)
                 addWorker(null, false);
         }
-        // 如果入队失败，则创建线程，创建失败时执行拒绝策略
+        // 创建线程失败且加入队列失败后执行拒绝策略
         else if (!addWorker(command, false))
             reject(command);
     }

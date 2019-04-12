@@ -172,6 +172,7 @@ import java.util.Spliterator;
  * @since 1.4
  */
 
+// Buffer 是一个内存块
 public abstract class Buffer {
 
     /**
@@ -183,8 +184,11 @@ public abstract class Buffer {
 
     // Invariants: mark <= position <= limit <= capacity
     private int mark = -1;
+    // 读取或写入开始的位置
     private int position = 0;
+    // 读模式下，表示最多可读取的数据数，写模式下表示最多可写入的数据数，最大为 capacity
     private int limit;
+    // buffer 容量大小
     private int capacity;
 
     // Used only by direct buffers
@@ -193,13 +197,14 @@ public abstract class Buffer {
 
     // Creates a new buffer with the given mark, position, limit, and capacity,
     // after checking invariants.
-    //
+    // 构造函数
     Buffer(int mark, int pos, int lim, int cap) {       // package-private
         if (cap < 0)
             throw new IllegalArgumentException("Negative capacity: " + cap);
         this.capacity = cap;
         limit(lim);
         position(pos);
+        // mark 不能大于 position
         if (mark >= 0) {
             if (mark > pos)
                 throw new IllegalArgumentException("mark > position: ("
@@ -239,6 +244,7 @@ public abstract class Buffer {
      * @throws  IllegalArgumentException
      *          If the preconditions on <tt>newPosition</tt> do not hold
      */
+    // 设置 position 值
     public final Buffer position(int newPosition) {
         if ((newPosition > limit) || (newPosition < 0))
             throw new IllegalArgumentException();
@@ -273,7 +279,9 @@ public abstract class Buffer {
     public final Buffer limit(int newLimit) {
         if ((newLimit > capacity) || (newLimit < 0))
             throw new IllegalArgumentException();
+        // 设置 limit
         limit = newLimit;
+        // position 不能大于 limit
         if (position > limit) position = limit;
         if (mark > limit) mark = -1;
         return this;
@@ -294,6 +302,8 @@ public abstract class Buffer {
      *
      * <p> Invoking this method neither changes nor discards the mark's
      * value. </p>
+     *
+     * 重置 position 为 mark 值
      *
      * @return  This buffer
      *
@@ -323,10 +333,13 @@ public abstract class Buffer {
      * is named as if it did because it will most often be used in situations
      * in which that might as well be the case. </p>
      *
+     * 清空 Buffer
+     *
      * @return  This buffer
      */
     public final Buffer clear() {
         position = 0;
+        // limit 为 capacity
         limit = capacity;
         mark = -1;
         return this;
@@ -351,6 +364,8 @@ public abstract class Buffer {
      * java.nio.ByteBuffer#compact compact} method when transferring data from
      * one place to another.  </p>
      *
+     * 从写模式切换到读模式，因此 limit 应该置为之前 position 位置，position 置为 0， position - limit
+     *
      * @return  This buffer
      */
     public final Buffer flip() {
@@ -373,6 +388,8 @@ public abstract class Buffer {
      * buf.rewind();      // Rewind buffer
      * buf.get(array);    // Copy data into array</pre></blockquote>
      *
+     * 回退，position 置 0
+     *
      * @return  This buffer
      */
     public final Buffer rewind() {
@@ -384,6 +401,8 @@ public abstract class Buffer {
     /**
      * Returns the number of elements between the current position and the
      * limit.
+     *
+     * 剩余的可读或可写空间
      *
      * @return  The number of elements remaining in this buffer
      */

@@ -367,6 +367,8 @@ public abstract class FileChannel
      * read.  Otherwise this method behaves exactly as specified in the {@link
      * ScatteringByteChannel} interface.  </p>
      */
+
+    // 可以用多个 Buffer 分散读取
     public final long read(ByteBuffer[] dsts) throws IOException {
         return read(dsts, 0, dsts.length);
     }
@@ -410,6 +412,8 @@ public abstract class FileChannel
      * behaves exactly as specified in the {@link GatheringByteChannel}
      * interface.  </p>
      */
+
+    // 多个 Buffer 聚集写入
     public final long write(ByteBuffer[] srcs) throws IOException {
         return write(srcs, 0, srcs.length);
     }
@@ -683,6 +687,8 @@ public abstract class FileChannel
      * @throws  IOException
      *          If some other I/O error occurs
      */
+
+    // 可以实现文件拷贝功能
     public abstract long transferFrom(ReadableByteChannel src,
                                       long position, long count)
         throws IOException;

@@ -15,7 +15,7 @@
 [EnumSet](notes/data-structure/EnumSet.md)<br>
 [TreeMap](notes/data-structure/TreeMap.md)<br>
 [IdentityHashMap](notes/data-structure/IdentityHashMap.md) <br>
-EnumMap <br>
+[EnumMap](notes/data-structure/EnmuMap.md) <br>
 
 ### 二、并发数据结构
 

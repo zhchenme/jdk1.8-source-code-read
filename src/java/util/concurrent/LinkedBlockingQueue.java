@@ -392,14 +392,15 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
             // 元素数量 + 1
             c = count.getAndIncrement();
             // 当元素不满时唤醒 notFull
-            // TODO 为什么不是在移除元素时唤醒呢？这一步有什么作用？
+            // Q：为什么不是在移除元素时唤醒呢？这一步有什么作用？
+            // A：c + 1 表示阻塞队列中现在总共的元素数
             if (c + 1 < capacity)
                 notFull.signal();
         } finally {
             putLock.unlock();
         }
-        // 没有元素时唤醒 notEmpty
-        // TODO 更不明白了...
+        // 没有元素时唤醒 notEmpty，注意释放锁的时机
+        // 注意 c 的初始值为 -1，判断为 0 时表示阻塞队列中有一个元素
         if (c == 0)
             signalNotEmpty();
     }
@@ -487,6 +488,7 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
      */
     public E take() throws InterruptedException {
         E x;
+        // 注意 c 的值是 -1
         int c = -1;
         // 获取元素数量，和 takeLock
         final AtomicInteger count = this.count;
@@ -502,13 +504,14 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
             x = dequeue();
             c = count.getAndDecrement();
             // 出队后，队列中还有元素唤醒 notEmpty
-            // TODO
+            // Q：为什么这里判断的是大于 1 而不是 0？
+            // A：getAndDecrement 方法先获取值再减一，因此当 c = 1 时即表示阻塞队列中没有任何元素
             if (c > 1)
                 notEmpty.signal();
         } finally {
             takeLock.unlock();
         }
-        // TODO
+        // c == capacity 表示原本阻塞队列已满，但是出队了一个元素，此时阻塞队列并不是满的状态
         if (c == capacity)
             signalNotFull();
         return x;

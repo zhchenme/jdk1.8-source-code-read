@@ -506,7 +506,53 @@
 
 rehash 的过程其实是比较简单的，生成新的哈希表，然后遍历旧的哈希表数组，将键值对重新 rehash 存储到新的哈希表数组中即可。
 
-**3.6 remove 方法**
+**3.6 getEntry 方法**
+
+``` java
+        private Entry getEntry(ThreadLocal<?> key) {
+            // 获取桶位置
+            int i = key.threadLocalHashCode & (table.length - 1);
+            // 获取桶位置上对应的链表
+            Entry e = table[i];
+            // 哈希不冲突，直接获取对应的 value 并返回
+            if (e != null && e.get() == key)
+                return e;
+            // 哈希冲突，则遍历后面的桶位置，进行查找，当然 key 可能因为是弱引用被擦出，需要额外处理
+            else
+                return getEntryAfterMiss(key, i, e);
+        }
+```
+
+`getEntry` 方法实现很简单，根据 key 的哈希值计算在哈希表数组中的桶位置，然后，如果当前对应的桶位置上的 key 是同一个则直接返回 `Entry`，反之则调用 `getEntryAfterMiss` 方法来处理哈希冲突的情况。
+
+``` java
+        private Entry getEntryAfterMiss(ThreadLocal<?> key, int i, Entry e) {
+            Entry[] tab = table;
+            int len = tab.length;
+
+            // Entry 为 null 作为循环结束条件
+            while (e != null) {
+                ThreadLocal<?> k = e.get();
+                // 找到直接返回， value
+                if (k == key)
+                    return e;
+                // 如果 key 被擦出，则清除
+                if (k == null)
+                    expungeStaleEntry(i);
+                else
+                    // 重置 i 用于循环遍历
+                    i = nextIndex(i, len);
+                e = tab[i];
+            }
+            // 没有找到返回 null
+            return null;
+        }
+```
+
+代码逻辑很清晰，这里就不进行详细总结了。
+
+**3.7 remove 方法**
+
 
 上面我们看了添加方法，下面来看一下删除操作：
 

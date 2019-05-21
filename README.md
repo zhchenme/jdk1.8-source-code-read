@@ -4,7 +4,7 @@
 
 幕布导图链接：[https://mubu.com/doc95LpcV0Umt](https://mubu.com/doc95LpcV0Umt)
 
-![jdk 非并发数据源码导图.png](https://upload-images.jianshu.io/upload_images/12466744-a73b00c19015fc8d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![jdk 非并发数据源码导图.png](https://image-static.segmentfault.com/257/226/2572268264-5ce35445ab881_articlex)
 
 ### 二、并发
 

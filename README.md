@@ -8,7 +8,7 @@
 
 ### 二、并发
 
-幕布导图链接：[https://mubu.com/doc95LpcV0Umt](https://mubu.com/doc95LpcV0Umt)
+幕布导图链接：[https://mubu.com/docfncDN6iU-t](https://mubu.com/docfncDN6iU-t)
 
 ![jdk 非并发数据源码导图.png](https://image-static.segmentfault.com/292/677/2926773697-5ce3ca5498cb6_articlex)
 

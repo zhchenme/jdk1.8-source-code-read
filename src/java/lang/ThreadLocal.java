@@ -455,7 +455,7 @@ public class ThreadLocal<T> {
         private Entry getEntry(ThreadLocal<?> key) {
             // 获取桶位置
             int i = key.threadLocalHashCode & (table.length - 1);
-            // 获取桶位置上对应的链表
+            // 获取桶位置上对应的 entry
             Entry e = table[i];
             // 哈希不冲突，直接获取对应的 value 并返回
             if (e != null && e.get() == key)
@@ -612,7 +612,7 @@ public class ThreadLocal<T> {
                 // The newly stale slot, or any other stale slot
                 // encountered above it, can then be sent to expungeStaleEntry
                 // to remove or rehash all of the other entries in run.
-                // key 重复
+                // key 重复，这里 key 是要插入的 key
                 if (k == key) {
                     e.value = value;
 
@@ -691,6 +691,7 @@ public class ThreadLocal<T> {
                 } else {
                     // 并不是向前移动，而是重新 rehash，计算对应的桶位置
                     // TODO 重点理解，重新 rehash 解决之前可能存在哈希冲突的情况
+                    // 并不以哈希冲突为条件，即使 NULL 条件前有元素不与该元素有哈希冲突也会重新 rehash
                     int h = k.threadLocalHashCode & (len - 1);
                     if (h != i) {
                         tab[i] = null;

@@ -71,7 +71,7 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
     implements BlockingQueue<E> {
 
     /**
-     * lock 直接初始化了
+     * ReentrantLock 可重入锁
      */
     private final transient ReentrantLock lock = new ReentrantLock();
     /**
@@ -148,10 +148,10 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
         // 加锁
         lock.lock();
         try {
-            // 调用 PriorityQueue 的 offer 方法
+            // 调用 PriorityQueue 的 offer 方法添加元素
             q.offer(e);
             // q.peek() 只会获取队首的元素，不会移除
-            // 如果插入的元素是队列中已过期时间最大的元素，唤醒 available
+            // 如果插入的元素是队列中已过期时间最大的元素，唤醒等待的队列
             if (q.peek() == e) {
                 leader = null;
                 available.signal();
@@ -202,7 +202,7 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
         try {
             // 获取队首元素
             E first = q.peek();
-            // 如果队首元素为 null 返回 null
+            // 如果队首元素为 null 或者延时时间没到返回 null
             if (first == null || first.getDelay(NANOSECONDS) > 0)
                 return null;
             else
@@ -227,6 +227,7 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
         final ReentrantLock lock = this.lock;
         lock.lockInterruptibly();
         try {
+
             for (;;) {
                 // 获取队首元素
                 E first = q.peek();
@@ -234,18 +235,19 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
                 if (first == null)
                     available.await();
                 else {
-                    // 获取队首队首元素的剩余过期时间（也有可能已经过期，返回负数）
+                    // 获取队首元素的剩余过期时间（也有可能已经过期，返回负数）
                     long delay = first.getDelay(NANOSECONDS);
                     // 如果队首元素已经过期则出队
                     if (delay <= 0)
                         return q.poll();
                     // 把 first 置 null，因为队首元素还没有到达过期时间
+                    // TODO first = null 并不会把队列中的元素置 null
                     first = null; // don't retain ref while waiting
-                    // 如果当前线程为 null，会被一直阻塞
+                    // leader不为空就说明，当前有等待队列头部元素的其他线程，那么当前线程就进行阻塞
                     if (leader != null)
                         available.await();
                     else {
-                        // 获取当前线程
+                        // 获取并设置当前线程
                         Thread thisThread = Thread.currentThread();
                         leader = thisThread;
                         try {
@@ -278,33 +280,45 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
      * @throws InterruptedException {@inheritDoc}
      */
     public E poll(long timeout, TimeUnit unit) throws InterruptedException {
+        // 计算超时时间
         long nanos = unit.toNanos(timeout);
         final ReentrantLock lock = this.lock;
+        // 上锁
         lock.lockInterruptibly();
         try {
             for (;;) {
+                // 获取队首元素
                 E first = q.peek();
                 if (first == null) {
+                    // 头部元素为 null，并且达到指定超时时间返回 null
                     if (nanos <= 0)
                         return null;
                     else
+                        // 没达到指定时间，等待
                         nanos = available.awaitNanos(nanos);
                 } else {
+                    // 获取头部元素的延迟时间
                     long delay = first.getDelay(NANOSECONDS);
+                    // 延迟到期，返回队列头部元素（超时时间内肯定有元素）
                     if (delay <= 0)
                         return q.poll();
+                    // 延时未到期，超时到期，返回 null
                     if (nanos <= 0)
                         return null;
                     first = null; // don't retain ref while waiting
+                    // 超时时间 < 延迟时间，且 leader 不等于 null，阻塞线程到超时时间结束
                     if (nanos < delay || leader != null)
                         nanos = available.awaitNanos(nanos);
                     else {
+                        // 超时时间 > 延迟时间，肯定可以获取到元素并且没有其它线程在等待，那么当前元素成为 leader
                         Thread thisThread = Thread.currentThread();
                         leader = thisThread;
                         try {
+                            // 等待延时时间到期
                             long timeLeft = available.awaitNanos(delay);
                             nanos -= delay - timeLeft;
                         } finally {
+                            // 清除 leader
                             if (leader == thisThread)
                                 leader = null;
                         }
@@ -312,6 +326,7 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
                 }
             }
         } finally {
+            // 还有元素可以获取
             if (leader == null && q.peek() != null)
                 available.signal();
             lock.unlock();

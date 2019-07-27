@@ -36,7 +36,7 @@
 [ArrayBlockingQueue](notes/data-structure/ArrayBlockingQueue.md) <br>
 [LinkedBlockingQueue](notes/data-structure/LinkedBlockingQueue.md) <br>
 [PriorityBlockingQueue](notes/data-structure/PriorityBlockingQueue.md) <br>
-DelayQueue <br>
+[DelayQueue](notes/data-structure/DelayQueue.md) <br>
 [ConcurrentHashMap 源码阅读](notes/data-structure/ConcurrentHashMap.md)<br>
 [Hashtable](notes/data-structure/Hashtable.md) <br>
 [CopyOnWriteArrayList](notes/data-structure/CopyOnWriteArrayList.md) <br>

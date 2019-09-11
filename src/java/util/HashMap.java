@@ -702,7 +702,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         else {
             Node<K,V> e; K k;
             // 如果 key 已经存在，记录存在的节点
-            // TODO 为什么多了一步头节点 key "存在"判断？
+            // 先判断哈希冲突是否是头节点
             if (p.hash == hash &&
                 ((k = p.key) == key || (key != null && key.equals(k))))
                 e = p;
@@ -778,10 +778,10 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                 newThr = oldThr << 1; // double threshold
         }
         // TODO 为什么把新哈希表容量置为老的扩容阈值？
-        // 如果执行下面的代码，表示哈希表还没有初始化，在没有初始化的时候 threshold 为哈希表初始容量大小，这样就可以理解了，biu~
+        // 如果执行下面的代码，表示哈希表还没有初始化且使用的是非空构造函数，在没有初始化的时候 threshold 为哈希表初始容量大小，这样就可以理解了，biu~
         else if (oldThr > 0) // initial capacity was placed in threshold
             newCap = oldThr;
-        // 初始化哈希表，初始化容量为 16，阈值为 0.75 * 16
+        // 初始化哈希表，初始化容量为 16，阈值为 0.75 * 16，到这里表示使用的是默认无参构造函数
         else {               // zero initial threshold signifies using defaults
             newCap = DEFAULT_INITIAL_CAPACITY;
             newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
@@ -792,7 +792,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             newThr = (newCap < MAXIMUM_CAPACITY && ft < (float)MAXIMUM_CAPACITY ?
                       (int)ft : Integer.MAX_VALUE);
         }
-        // 重置阈值与哈希表
+        // 重置阈值与哈希表，扩容与初始化可以视为同一种操作原理，都需要初始化哈希表，因为放到一起处理，思想很前卫...
         threshold = newThr;
         @SuppressWarnings({"rawtypes","unchecked"})
             Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];
@@ -816,10 +816,12 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                         /**
                          * 条件：原哈希表大小为 16，扩容后的哈希表大小为 32
                          *
-                         * 1.假设某个 key 的哈希值为 17，那么它在原来哈希表中的桶位置为 1，在新的哈希表中的桶位置也为 17
+                         * 1.假设某个 key 的哈希值为 17，那么它在原来哈希表中的桶位置为 1，在新的哈希表中的桶位置为 17
                          * 通过 ((e.hash & oldCap) == 0) 判断条件不成立，rehash 时通过 newTab[j + oldCap] = hiHead 赋值，保证其位置正确性
-                         * 2.假设某个 key 的哈希值为 63，那么它在原来哈希表中的桶位置为 1，在新的哈希表中的桶位置也为 1
-                         * 通过 ((e.hash & oldCap) == 0) 判断条件成立，通过 newTab[j] = loHead 赋值，保证其位置正确性
+                         * 2.假设某个 key 的哈希值为 63，那么它在原来哈希表中的桶位置为 15，在新的哈希表中的桶位置也为 31
+                         * 通过 ((e.hash & oldCap) == 0) 判断条件不成立，通过 newTab[j + oldCap] = hiHead 赋值，保证其位置正确性
+                         * 3.假设某个 key 的哈希值为 15，那么它在原来哈希表中的桶位置为 15，在新的哈希表中的桶位置也为 15
+                         *  通过 ((e.hash & oldCap) == 0) 判断条件成立，通过 newTab[j] = hiHead 赋值，保证其位置正确性
                          */
                         Node<K,V> loHead = null, loTail = null;
                         Node<K,V> hiHead = null, hiTail = null;
@@ -1030,6 +1032,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             for (int i = 0; i < tab.length; ++i) {
                 // 遍历当前桶上的所有节点
                 // TODO 为什么没有对节点类型进行判断，分别走对应的查找？
+                // 树节点也是有 next 指针的，这里树节点没有走红黑树的查找流程，而是通过指针
                 for (Node<K,V> e = tab[i]; e != null; e = e.next) {
                     if ((v = e.value) == value ||
                         (value != null && value.equals(v)))

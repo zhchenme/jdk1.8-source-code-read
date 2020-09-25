@@ -786,10 +786,9 @@ public abstract class AbstractQueuedSynchronizer
          * racing acquires/releases, so most need signals now or soon
          * anyway.
          */
-        // 将自己设置为头节点后，可能又有节点加入
+        // 当前节点的 next 节点可能也是读节点
         if (propagate > 0 || h == null || h.waitStatus < 0 ||
                 (h = head) == null || h.waitStatus < 0) {
-            // 获取后面加入的节点
             Node s = node.next;
             if (s == null || s.isShared())
                 doReleaseShared();
@@ -888,14 +887,12 @@ public abstract class AbstractQueuedSynchronizer
              * Predecessor was cancelled. Skip over predecessors and
              * indicate retry.
              *
-             * 如果前驱已经被执行过？则一直向前查找，直到找到未获取的线程节点
-             * 这里是理解为已经成功获取过还是说以前的节点放弃了，理解为前面有的节点放弃了获取会好些
-             *
+             * 如果前驱已经被取消执行？则一直向前查找，直到找到未获取的线程节点
              */
             do {
                 node.prev = pred = pred.prev;
             } while (pred.waitStatus > 0);
-            // 删除已经获取过的线程节点
+            // 删除已经取消的线程节点
             pred.next = node;
         } else {
             /*
@@ -903,7 +900,8 @@ public abstract class AbstractQueuedSynchronizer
              * need a signal, but don't park yet.  Caller will need to
              * retry to make sure it cannot acquire before parking.
              *
-             * 通过 cas 将状态置为 "后继节点需要执行"，告诉前置节点你执行过以后需要通知后面的节点执行
+             * 新节点进来自旋，并不会在第一次自旋就进入阻塞状态，而是自旋一次后将前置节点置为 SIGNAL 状态，而当前线程对应的节点还是 0，
+             * 在下一次自旋时，由于前置节点为 SIGNAL，因此当前线程节点会进入阻塞状态
              */
             compareAndSetWaitStatus(pred, ws, Node.SIGNAL);
         }
@@ -944,8 +942,8 @@ public abstract class AbstractQueuedSynchronizer
      * 在等待队列中一直自旋尝试获取同步状态
      *
      *
-     * TODO 这里自旋要怎么理解，如果获取到了同步状态返回？如果没有获取到同步状态是一直尝试获取还是将前置节点的状态设置为 SIGNAL 然后自己调用 park 阻塞然后等待被唤醒
      * TODO 节点是一直自旋还是自旋一段时间后就进入睡眠状态？
+     *  answer：节点进入自旋后会状态被改为 SIGNAL，经过下一轮循环后变为阻塞状态
      *
      * solution:节点被移出队列（或停止自旋）的条件是前驱节点为头节点且成功的获取了同步状态
      *
@@ -961,12 +959,15 @@ public abstract class AbstractQueuedSynchronizer
             boolean interrupted = false;
             // 自旋
             for (;;) {
+                // PS：这个自旋一直是当前线程对应的节点自旋，而不是一直向前找节点
                 // 获取前驱节点
                 final Node p = node.predecessor();
                 // 如果前驱节点是头节点，第二个节点尝试获取同步状态且获取同步状态成功
                 // 获取同步状态成功后把已经执行过的头节点断开
                 if (p == head && tryAcquire(arg)) {
                     // 重置头节点为当前节点，会将头节点的 thread 与 pre 置 null
+                    // todo 可以留意下为什么是在这里重新设置头节点，而不是在 release 的时候重置，原因是头节点被唤醒不一定能拿到锁，拿不到时会在这里自旋，
+                    //  如果 release 的时候重置了头节点，p == head 的条件就不满足了，起点-终点，终点-起点
                     setHead(node);
                     // 断开旧的头节点
                     p.next = null; // help GC
@@ -975,6 +976,7 @@ public abstract class AbstractQueuedSynchronizer
                     return interrupted;
                 }
                 // 判断线程是否需要阻塞（进入waiting状态，直到被 unpark() 唤醒）
+                // 队列中节点对应的 waitStatus 应该是：【SIGNAL -> SIGNAL -> ... -> 0】，且都处于阻塞状态
                 if (shouldParkAfterFailedAcquire(p, node) &&
                         // 阻塞线程并返回是否产生中断
                         parkAndCheckInterrupt())
@@ -1084,7 +1086,7 @@ public abstract class AbstractQueuedSynchronizer
                         return;
                     }
                 }
-                // 判断状态，寻找安全点，进入 waiting 状态，等着被 unpark() 或 interrupt()
+                // 判断状态，寻找安全点，进入 waiting 状态，等着被 unpark()
                 if (shouldParkAfterFailedAcquire(p, node) &&
                         parkAndCheckInterrupt())
                     interrupted = true;
@@ -1397,7 +1399,7 @@ public abstract class AbstractQueuedSynchronizer
         // 独占式释放锁成功（修改状态值，需要重写）
         if (tryRelease(arg)) {
             Node h = head;
-            // 唤醒后继节点
+            // 唤醒后继节点，h.waitStatus != 0 表示头节点后还有节点在队列里，需要唤醒它，因为队列中只有最后一个节点的 waitStatus 才为 0
             if (h != null && h.waitStatus != 0)
                 unparkSuccessor(h);
             return true;

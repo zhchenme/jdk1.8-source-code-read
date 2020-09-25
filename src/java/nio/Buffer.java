@@ -171,8 +171,6 @@ import java.util.Spliterator;
  * @author JSR-51 Expert Group
  * @since 1.4
  */
-
-// Buffer 是一个内存块
 public abstract class Buffer {
 
     /**
@@ -193,6 +191,7 @@ public abstract class Buffer {
 
     // Used only by direct buffers
     // NOTE: hoisted here for speed in JNI GetDirectBufferAddress
+    // 堆外内存地址
     long address;
 
     // Creates a new buffer with the given mark, position, limit, and capacity,

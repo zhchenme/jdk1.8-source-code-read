@@ -542,7 +542,7 @@ public class ReentrantReadWriteLock
              *    apparently not eligible or CAS fails or count
              *    saturated, chain to version with full retry loop.
              */
-            Thread current = Thread.currentTh read();
+            Thread current = Thread.currentThread();
             int c = getState();
             // 如果存在写线程，切获取写锁的线程不是当前线程，则尝试获取同步状态失败
             // 意为如果当前线程已经获取过写锁，那么它可以继续尝试去获取读锁

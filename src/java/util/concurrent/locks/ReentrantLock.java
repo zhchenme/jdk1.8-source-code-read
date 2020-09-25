@@ -246,11 +246,11 @@ public class ReentrantLock implements Lock, java.io.Serializable {
          * 加锁
          */
         final void lock() {
-            // 无锁重入，第一次尝试修改同步状态值
+            // 非公平锁线程每次进来都会尝试一次获取锁，而公平锁没有该步骤
             if (compareAndSetState(0, 1))
                 setExclusiveOwnerThread(Thread.currentThread());
             else
-                // 锁重入，同步状态值 + 1
+                // 第一次尝试没有获取成功
                 acquire(1);
         }
 
@@ -285,6 +285,13 @@ public class ReentrantLock implements Lock, java.io.Serializable {
          * recursive call or no waiters or is first.
          *
          * 尝试获取锁
+         *
+         * q：如何理解公平与非公平？
+         * a：公平锁只有头节点的 next 节点对应的线程才能获取锁，因为它是队列中除了头节点（获取资源的线程）入队时间最早的，应该它获取锁，新线程进来后，就直接入队了，它拿不到锁
+         * 非公平锁指的是当资源释放时，有可能获取锁的线程有头节点的 next 节点和刚创建的任务（此时不在队列中），前述的两种情况都有可能获取锁，
+         * 如果头节点的 next 节点获取锁，则新任务入队，如果新任务获取到锁，则头节点的 next 节点自旋，直到拿到锁 @see java.util.concurrent.locks.AbstractQueuedSynchronizer#acquireQueued(java.util.concurrent.locks.AbstractQueuedSynchronizer.Node, int)
+         *
+         * 这也可以解释为什么非公平锁的吞吐量要比公平锁高，同线程条件下，公平锁的队列要比非公平锁的队列 size 大，而队列中的线程每次拿到锁都需要上下文切换
          */
         protected final boolean tryAcquire(int acquires) {
             // 获取当前线程

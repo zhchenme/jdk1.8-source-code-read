@@ -444,7 +444,7 @@ public class ReentrantReadWriteLock
                 // (Note: if c != 0 and w == 0 then shared count != 0)
                 // TODO 重点理解...
                 // w == 0 表示读锁存在，因为没有独占的写锁，如果读锁存在，写锁必须等所有读锁释放后才能获取成功，因此返回 false
-                // 如果当前线程不是已经获取写锁的线程，则获取失败，因为其他写线程已经获取到了锁
+                // 如果当前线程不是已经获取写锁的线程（非重入），则获取失败，因为其他写线程已经获取到了锁
                 if (w == 0 || current != getExclusiveOwnerThread())
                     return false;
                 // 同一个写锁超过最大重入次数抛出异常
@@ -504,11 +504,14 @@ public class ReentrantReadWriteLock
                 int c = getState();
                 // SHARED_UNIT = 32
                 // TODO 为什么 - 32？
+                //  因为获取锁是 + 32
                 int nextc = c - SHARED_UNIT;
                 if (compareAndSetState(c, nextc))
                     // Releasing the read lock has no effect on readers,
                     // but it may allow waiting writers to proceed if
                     // both read and write locks are now free.
+                    // todo 为什么这里返回 nextc == 0
+                    //  原因是读锁是共享的，可能会同时存在多个读线程，只有多个读线程都释放时，才能唤醒队列中的线程
                     return nextc == 0;
             }
         }
@@ -605,7 +608,7 @@ public class ReentrantReadWriteLock
             // 自旋尝试获取同步状态
             for (;;) {
                 int c = getState();
-                // 如果存在写线程，切获取锁的写线程不是当前线程则获取失败
+                // 如果存在写线程，且获取锁的写线程不是当前线程则获取失败
                 if (exclusiveCount(c) != 0) {
                     if (getExclusiveOwnerThread() != current)
                         return -1;

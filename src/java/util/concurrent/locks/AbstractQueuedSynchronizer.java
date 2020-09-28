@@ -670,6 +670,7 @@ public abstract class AbstractQueuedSynchronizer
     private void setHead(Node node) {
         head = node;
         // 头节点没有数据，只是一个头标记
+        // todo 这里并不会重置 waitStatus 状态
         node.thread = null;
         node.prev = null;
     }
@@ -790,6 +791,7 @@ public abstract class AbstractQueuedSynchronizer
         if (propagate > 0 || h == null || h.waitStatus < 0 ||
                 (h = head) == null || h.waitStatus < 0) {
             Node s = node.next;
+            // todo s.isShared() 终点理解，因为后稷节点可能也是读节点，由于读节点共享，所以需要唤醒后续队列中的读节点
             if (s == null || s.isShared())
                 doReleaseShared();
         }
@@ -967,7 +969,7 @@ public abstract class AbstractQueuedSynchronizer
                 if (p == head && tryAcquire(arg)) {
                     // 重置头节点为当前节点，会将头节点的 thread 与 pre 置 null
                     // todo 可以留意下为什么是在这里重新设置头节点，而不是在 release 的时候重置，原因是头节点被唤醒不一定能拿到锁，拿不到时会在这里自旋，
-                    //  如果 release 的时候重置了头节点，p == head 的条件就不满足了，起点-终点，终点-起点
+                    //  进入自旋后可能会再次进入阻塞状态，如果 release 的时候重置了头节点，p == head 的条件可能就不满足了，因为拿到锁的线程不一定在队列里，不能通过每次释放时就重置头节点
                     setHead(node);
                     // 断开旧的头节点
                     p.next = null; // help GC
@@ -978,7 +980,6 @@ public abstract class AbstractQueuedSynchronizer
                 // 判断线程是否需要阻塞（进入waiting状态，直到被 unpark() 唤醒）
                 // 队列中节点对应的 waitStatus 应该是：【SIGNAL -> SIGNAL -> ... -> 0】，且都处于阻塞状态
                 if (shouldParkAfterFailedAcquire(p, node) &&
-                        // 阻塞线程并返回是否产生中断
                         parkAndCheckInterrupt())
                     interrupted = true;
             }
@@ -1076,6 +1077,7 @@ public abstract class AbstractQueuedSynchronizer
                     int r = tryAcquireShared(arg);
                     // 获取成功
                     if (r >= 0) {
+                        // todo 这里有一个问题：当队列中是 "读读读写读" 情况时，所有的读都会被唤醒吗，还是只唤醒到第三个读，看代码应该是第二种情况，如果是第二种就意味着读是伪共享的
                         setHeadAndPropagate(node, r);
                         // 断开之前的头节点
                         p.next = null; // help GC

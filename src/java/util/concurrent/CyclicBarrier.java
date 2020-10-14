@@ -232,7 +232,7 @@ public class CyclicBarrier {
                 boolean ranAction = false;
                 try {
                     final Runnable command = barrierCommand;
-                    // 放行栅栏内的线程任务
+                    // 执行栅栏构造函数中初始化创建的任务
                     if (command != null)
                         command.run();
                     ranAction = true;
@@ -240,7 +240,6 @@ public class CyclicBarrier {
                     nextGeneration();
                     return 0;
                 } finally {
-                    // TODO 这里为 false 要怎么理解
                     if (!ranAction)
                         breakBarrier();
                 }
@@ -273,7 +272,7 @@ public class CyclicBarrier {
                 if (g.broken)
                     throw new BrokenBarrierException();
 
-                // 判断是否是一个栅栏内的线程，一个线程可能在多个栅栏内
+                // 栅栏已经进入到下一次循环
                 if (g != generation)
                     return index;
 

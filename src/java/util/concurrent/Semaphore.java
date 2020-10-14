@@ -174,6 +174,7 @@ public class Semaphore implements java.io.Serializable {
             return getState();
         }
 
+        // 通过 cas 递减 state 值
         final int nonfairTryAcquireShared(int acquires) {
             for (;;) {
                 int available = getState();
@@ -184,6 +185,7 @@ public class Semaphore implements java.io.Serializable {
             }
         }
 
+        // 通过 cas 递增 state 值
         protected final boolean tryReleaseShared(int releases) {
             for (;;) {
                 int current = getState();
@@ -262,6 +264,7 @@ public class Semaphore implements java.io.Serializable {
      *        must occur before any acquires will be granted.
      */
     public Semaphore(int permits) {
+        // 初始化线程许可数量
         sync = new NonfairSync(permits);
     }
 
@@ -309,6 +312,7 @@ public class Semaphore implements java.io.Serializable {
      * @throws InterruptedException if the current thread is interrupted
      */
     public void acquire() throws InterruptedException {
+        // 当状态值 < 0 时阻塞
         sync.acquireSharedInterruptibly(1);
     }
 

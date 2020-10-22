@@ -44,7 +44,8 @@
 [AQS](notes/data-structure/AQS.md) <br>
 [ReentrantLock](notes/data-structure/ReentrantLock.md) <br>
 [CountDownLatch](notes/data-structure/CountDownLatch.md) <br>
-ReentrantReadWriteLock <br>
-CyclicBarrier <br>
+[CyclicBarrier](notes/data-structure/CyclicBarrier.md) <br>
+[Semaphore](notes/data-structure/Semaphore.md) <br>
 [ThreadLocal](notes/data-structure/ThreadLocal.md) <br>
+ReentrantReadWriteLock <br>
 

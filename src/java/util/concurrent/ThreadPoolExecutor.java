@@ -631,6 +631,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         /** Thread this worker is running in.  Null if factory fails. */
         final Thread thread;
         /** Initial task to run.  Possibly null. */
+        // 线程池中的线程关联了具体的任务
         Runnable firstTask;
         /** Per-thread task counter */
         volatile long completedTasks;
@@ -650,6 +651,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         /**
          * 重写 Runnable 接口中的 run 方法
          */
+        @Override
         public void run() {
             runWorker(this);
         }
@@ -1013,7 +1015,6 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                 }
                 // 如果添加成功，则开启线程
                 if (workerAdded) {
-                    // TODO 为什么这里调用的是 start 方法？
                     // 启动 worker 对应的线程
                     // 当执行 start 方法启动线程 thread 时，本质是执行了 Worker 的 runWorker 方法
                     t.start();
@@ -1202,6 +1203,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         boolean completedAbruptly = true;
         try {
             // 自旋从缓存的阻塞队列中获取任务执行
+            // todo PS：队列种的任务如何触发执行，通过 getTask() 获取队列中的任务
+            //  那么有没有可能 task == null，此时队列中没有添加任务，循环终止，而后续有任务被添加进队列中，那后续的任务要怎么触发执行呢？
             while (task != null || (task = getTask()) != null) {
                 w.lock();
                 // If pool is stopping, ensure thread is interrupted;
@@ -1217,6 +1220,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                     Throwable thrown = null;
                     try {
                         // 执行线程
+                        // todo 这里调用的是任务的 run 而不是 start 方法，因此线程池中的任务不具备线程特性，具备线程特性的是线程池中的线程
                         task.run();
                     } catch (RuntimeException x) {
                         thrown = x; throw x;
@@ -1229,6 +1233,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                     }
                 } finally {
                     // 把任务置 null，避免重复执行
+                    // todo 这里置 null 另一个用处是在下一次循环的时候会调用 getTask() 从队列中获取等待的任务
                     task = null;
                     // 执行的任务数 ++
                     w.completedTasks++;

@@ -268,6 +268,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
                 } catch (Throwable ex) {
                     result = null;
                     ran = false;
+                    // 出现异常时并不会抛出异常
                     setException(ex);
                 }
                 if (ran)

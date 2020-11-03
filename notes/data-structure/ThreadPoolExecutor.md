@@ -380,7 +380,7 @@ PS：这里有一个疑问，自己没有搞明白，这里标记一下：
 
 这里只分析了一些核心流程，其他方法调用有兴趣的自己感兴趣看下。
 
-### 常见面时问题
+### 常见面试问题
 
 接下来分析一些常见的面试题目。
 
@@ -389,10 +389,30 @@ PS：这里有一个疑问，自己没有搞明白，这里标记一下：
  - `execute` 执行任务时会抛出异常
  - `submit` 方法会返回一个 `RunnableFuture` 对象，通过这个对象能够得知当前任务执行的状态等信息，切当出现异常时不会抛出异常
 
-#### 异常处理
+#### submit 提交任务异常处理
 
-在上线的 `runWorker` 方法中，执行任务的 `run` 方法过程中，如果出现了异常，
+上面分析了 `submit` 方法在执行任务时，如果出现异常，会将异常传递到 `setException(ex)` 方法，这个方法实现是不处理异常的。如果要捕获并处理异常，可以通过以下几种方式：
 
- 1. `try catch` 手动捕获异常
+ 1. `try catch`，手动捕获异常
+ 2. 通过调用 `FutureTask.get()` 获取异常结果
+ 3. 为 `ThreadPoolExecutor` 自定义 `ThreadFactory`，并为线程池中的工作线程设置 `UncaughtExceptionHandler`
+ 4. 重写 `ThreadPoolExecutor` 的 `afterExecute`方法，这个方法默认是个空实现
 
+```java
+    @Test
+    public void test() {
+        ExecutorService threadPool = Executors.newFixedThreadPool(1, r -> {
+            Thread t = new Thread(r);
+            t.setUncaughtExceptionHandler((t1, e) -> System.out.println(t1.getName() + "线程抛出的异常" + e));
+            return t;
+        });
+        threadPool.execute(() -> {
+            Object object = null;
+            System.out.print("result## " + object.toString());
+        });
+    }
+```
+      
+参考：
 
+[面试必备：Java线程池解析](https://juejin.im/post/6844903889678893063)

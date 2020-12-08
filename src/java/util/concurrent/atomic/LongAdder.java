@@ -82,12 +82,18 @@ public class LongAdder extends Striped64 implements Serializable {
      * @param x the value to add
      */
     public void add(long x) {
-        Cell[] as; long b, v; int m; Cell a;
+        Cell[] as;
+        long b, v;
+        // m = as.length -1，取模用，定位数组角标
+        int m;
+        // as 数组 m 角标对应的 Cell 对象
+        Cell a;
+        // 低竞争条件下，cells 为 null，此时调用 casBase（底层为 CAS 操作，类似 AtomicLong） 方法操作 base
+        // PS：cells 数组为懒加载，只有在 CAS 竞争失败的情况下才会初始化
         if ((as = cells) != null || !casBase(b = base, b + x)) {
             boolean uncontended = true;
-            if (as == null || (m = as.length - 1) < 0 ||
-                (a = as[getProbe() & m]) == null ||
-                !(uncontended = a.cas(v = a.value, v + x)))
+            // as 数组为 null，或者数组 size = 0，或者数组角标（当前线程对 m 取模）在数组中不能定位，或者 cell 对象 CAS 操作失败
+            if (as == null || (m = as.length - 1) < 0 || (a = as[getProbe() & m]) == null || !(uncontended = a.cas(v = a.value, v + x)))
                 longAccumulate(x, null, uncontended);
         }
     }
@@ -119,6 +125,7 @@ public class LongAdder extends Striped64 implements Serializable {
         Cell[] as = cells; Cell a;
         long sum = base;
         if (as != null) {
+            // 累加 base 与 cells 数组获得返回值
             for (int i = 0; i < as.length; ++i) {
                 if ((a = as[i]) != null)
                     sum += a.value;

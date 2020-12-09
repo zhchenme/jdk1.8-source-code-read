@@ -144,6 +144,7 @@ abstract class Striped64 extends Number {
     }
 
     /** Number of CPUS, to place bound on table size */
+    // 该方法用于返回 JVM 可用核心数
     static final int NCPU = Runtime.getRuntime().availableProcessors();
 
     /**
@@ -261,15 +262,15 @@ abstract class Striped64 extends Number {
                 }
                 else if (!wasUncontended)       // CAS already known to fail
                     wasUncontended = true;      // Continue after rehash
-                else if (a.cas(v = a.value, ((fn == null) ? v + x :
-                                             fn.applyAsLong(v, x)))) // CAS 操作成功，跳出循环
+                else if (a.cas(v = a.value, ((fn == null) ? v + x : fn.applyAsLong(v, x)))) // CAS 操作成功，跳出循环
                     break;
-                else if (n >= NCPU || cells != as)
+                else if (n >= NCPU || cells != as) // 数组范围不能大于 JVM 可用核心数，cells != as 数组可能扩容
                     collide = false;            // At max size or stale
                 else if (!collide)
                     collide = true;
                 else if (cellsBusy == 0 && casCellsBusy()) {
                     try {
+                        // 数组扩容
                         if (cells == as) {      // Expand table unless stale
                             Cell[] rs = new Cell[n << 1];
                             for (int i = 0; i < n; ++i)
@@ -282,13 +283,16 @@ abstract class Striped64 extends Number {
                     collide = false;
                     continue;                   // Retry with expanded table
                 }
+                // 重置线程 threadLocalRandomProbe 值，重新 rehash
                 h = advanceProbe(h);
             }
             else if (cellsBusy == 0 && cells == as && casCellsBusy()) {
                 boolean init = false;
                 try {                           // Initialize table
                     if (cells == as) {
+                        // 初始化 cells 数组，默认大小为 2
                         Cell[] rs = new Cell[2];
+                        // 角标赋值
                         rs[h & 1] = new Cell(x);
                         cells = rs;
                         init = true;
@@ -299,6 +303,7 @@ abstract class Striped64 extends Number {
                 if (init)
                     break;
             }
+            // 多个线程初始化，只有一个线程初始化成功，其他线程尝试更新 base 值
             else if (casBase(v = base, ((fn == null) ? v + x :
                                         fn.applyAsLong(v, x))))
                 break;                          // Fall back on using base

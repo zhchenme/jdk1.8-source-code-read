@@ -49,4 +49,5 @@
 [ThreadLocal](notes/data-structure/ThreadLocal.md) <br>
 [ThreadPoolExecutor](notes/data-structure/ThreadPoolExecutor.md) <br>
 ReentrantReadWriteLock <br>
+[LongAdder](notes/data-structure/LongAdder.md) <br>
 

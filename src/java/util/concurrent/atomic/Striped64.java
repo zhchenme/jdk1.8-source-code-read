@@ -233,13 +233,14 @@ abstract class Striped64 extends Number {
             // cells 数组大小
             int n;
             long v;
+            // cells 数组已经初始化
             if ((as = cells) != null && (n = as.length) > 0) {
                 // 当前线程对应数组角标的 Cell 对象为空
                 if ((a = as[(n - 1) & h]) == null) {
                     if (cellsBusy == 0) {       // Try to attach new Cell
                         // 初始化 Cell，这里存在竞争，可能多个线程都创建了 Cell 对象
                         Cell r = new Cell(x);   // Optimistically create
-                        // casCellsBusy() 更新 cellsBusy 为 1，通过 CAS 操作保证只有一个线程操作成功
+                        // casCellsBusy() 更新 cellsBusy 为 1，通过 CAS 操作保证只有一个线程操作成功，cellsBusy() 方法相当于一个 spin lock
                         if (cellsBusy == 0 && casCellsBusy()) {
                             boolean created = false;
                             try {               // Recheck under lock
@@ -252,7 +253,7 @@ abstract class Striped64 extends Number {
                             } finally {
                                 cellsBusy = 0;
                             }
-                            // Cell 创建成功，跳出循环
+                            // Cell 在数组中赋值成功，跳出循环
                             if (created)
                                 break;
                             continue;           // Slot is now non-empty
@@ -262,15 +263,19 @@ abstract class Striped64 extends Number {
                 }
                 else if (!wasUncontended)       // CAS already known to fail
                     wasUncontended = true;      // Continue after rehash
-                else if (a.cas(v = a.value, ((fn == null) ? v + x : fn.applyAsLong(v, x)))) // CAS 操作成功，跳出循环
+                // CAS 操作成功，跳出循环
+                else if (a.cas(v = a.value, ((fn == null) ? v + x : fn.applyAsLong(v, x))))
                     break;
-                else if (n >= NCPU || cells != as) // 数组范围不能大于 JVM 可用核心数，cells != as 数组可能扩容
+                // 数组范围不能大于 JVM 可用核心数，cells != as 表示数组可能扩容
+                else if (n >= NCPU || cells != as)
                     collide = false;            // At max size or stale
+                // 多个线程出现碰撞，更新 collide = true，出现碰撞后并没有直接扩容 cells 数组，而是重新 rehash，rehash CAS 失败后才会扩容
                 else if (!collide)
-                    collide = true;
+                       collide = true;
+                // 走到这里说明出现了数组碰撞，且自旋 rehash CAS 失败，这时需要对数组扩容
                 else if (cellsBusy == 0 && casCellsBusy()) {
                     try {
-                        // 数组扩容
+                        // 数组扩容，重置 cells 数组
                         if (cells == as) {      // Expand table unless stale
                             Cell[] rs = new Cell[n << 1];
                             for (int i = 0; i < n; ++i)
@@ -280,6 +285,7 @@ abstract class Striped64 extends Number {
                     } finally {
                         cellsBusy = 0;
                     }
+                    // 扩容完成后标记碰撞为 false
                     collide = false;
                     continue;                   // Retry with expanded table
                 }

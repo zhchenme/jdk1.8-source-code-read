@@ -1818,6 +1818,8 @@ public abstract class AbstractQueuedSynchronizer
     final boolean transferForSignal(Node node) {
         /*
          * If cannot change waitStatus, the node has been cancelled.
+         *
+         * 更新节点状态为 0，因为 signal 与 signalAll 都需要获取锁后才能执行，正常流程下这里不存在并发
          */
         if (!compareAndSetWaitStatus(node, Node.CONDITION, 0))
             return false;
@@ -1827,9 +1829,15 @@ public abstract class AbstractQueuedSynchronizer
          * indicate that thread is (probably) waiting. If cancelled or
          * attempt to set waitStatus fails, wake up to resync (in which
          * case the waitStatus can be transiently and harmlessly wrong).
+         *
+         * 条件队列节点入同步队列，并返回前驱节点
          */
         Node p = enq(node);
+        // 获取前置节点状态
         int ws = p.waitStatus;
+        // ws > 0 表示节点被取消了
+        // !compareAndSetWaitStatus(p, ws, Node.SIGNAL) 表示更新前置节点状态为 SIGNAL 失败，这两种场景要唤醒前置节点
+        // todo 为什么要唤醒前置节点
         if (ws > 0 || !compareAndSetWaitStatus(p, ws, Node.SIGNAL))
             LockSupport.unpark(node.thread);
         return true;
@@ -1997,6 +2005,7 @@ public abstract class AbstractQueuedSynchronizer
             Node t = lastWaiter;
             // If lastWaiter is cancelled, clean out.
             if (t != null && t.waitStatus != Node.CONDITION) {
+                // 过滤取消的节点
                 unlinkCancelledWaiters();
                 t = lastWaiter;
             }
@@ -2017,9 +2026,9 @@ public abstract class AbstractQueuedSynchronizer
          */
         private void doSignal(Node first) {
             do {
-                if ( (firstWaiter = first.nextWaiter) == null)
+                if ( /*重置条件队列的头节点*/(firstWaiter = first.nextWaiter) == null)
                     lastWaiter = null;
-                first.nextWaiter = null;
+                first.nextWaiter = null; // help gc
             } while (!transferForSignal(first) &&
                     (first = firstWaiter) != null);
         }
@@ -2087,6 +2096,7 @@ public abstract class AbstractQueuedSynchronizer
                 throw new IllegalMonitorStateException();
             Node first = firstWaiter;
             if (first != null)
+                // 唤醒条件队列中的第一个节点
                 doSignal(first);
         }
 
@@ -2180,14 +2190,22 @@ public abstract class AbstractQueuedSynchronizer
         public final void await() throws InterruptedException {
             if (Thread.interrupted())
                 throw new InterruptedException();
+            // 创建 Node 节点状态为 CONDITION，在 ConditionObject 内部维护一个单向链表条件队列
             Node node = addConditionWaiter();
+            // 释放同步状态（锁）
             int savedState = fullyRelease(node);
             int interruptMode = 0;
+            // 判断条件队列节点是否已经加入到同步队列，如果不在同步队列则挂起线程，在同步队列则意味着被唤醒可以重新获取锁资源继续执行
             while (!isOnSyncQueue(node)) {
                 LockSupport.park(this);
+                /**
+                 * 如果线程没有中断，则返回 0 在 while 循环里重试判断节点是否在同步队列中，如果在同步队列中则继续执行，不等待
+                 * todo 中断
+                 */
                 if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
                     break;
             }
+            // 醒来后尝试获取同步状态
             if (acquireQueued(node, savedState) && interruptMode != THROW_IE)
                 interruptMode = REINTERRUPT;
             if (node.nextWaiter != null) // clean up if cancelled

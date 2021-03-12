@@ -781,8 +781,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         // 如果执行下面的代码，表示哈希表还没有初始化且使用的是非空构造函数，在没有初始化的时候 threshold 为哈希表初始容量大小，这样就可以理解了，biu~
         else if (oldThr > 0) // initial capacity was placed in threshold
             newCap = oldThr;
-        // 初始化哈希表，初始化容量为 16，阈值为 0.75 * 16，到这里表示使用的是默认无参构造函数
         else {               // zero initial threshold signifies using defaults
+            // 初始化哈希表，初始化容量为 16，阈值为 0.75 * 16，到这里表示使用的是默认无参构造函数
             newCap = DEFAULT_INITIAL_CAPACITY;
             newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
         }
@@ -818,7 +818,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                          *
                          * 1.假设某个 key 的哈希值为 17，那么它在原来哈希表中的桶位置为 1，在新的哈希表中的桶位置为 17
                          * 通过 ((e.hash & oldCap) == 0) 判断条件不成立，rehash 时通过 newTab[j + oldCap] = hiHead 赋值，保证其位置正确性
-                         * 2.假设某个 key 的哈希值为 63，那么它在原来哈希表中的桶位置为 15，在新的哈希表中的桶位置也为 31
+                   s      * 2.假设某个 key 的哈希值为 63，那么它在原来哈希表中的桶位置为 15，在新的哈希表中的桶位置也为 31
                          * 通过 ((e.hash & oldCap) == 0) 判断条件不成立，通过 newTab[j + oldCap] = hiHead 赋值，保证其位置正确性
                          * 3.假设某个 key 的哈希值为 15，那么它在原来哈希表中的桶位置为 15，在新的哈希表中的桶位置也为 15
                          *  通过 ((e.hash & oldCap) == 0) 判断条件成立，通过 newTab[j] = hiHead 赋值，保证其位置正确性

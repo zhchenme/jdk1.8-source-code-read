@@ -934,6 +934,9 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * {@inheritDoc}
      *
      * 返回键值对元素个数
+     *
+     * jdk1.7 中以不加锁的方式计算三次，如果三次结果一样直接返回，结果不一样对每个 Segment 加锁，再进行计算
+     * 1.8 用 baseCount + counterCells 计算结果，baseCount 通过 CAS 进行计算，并发失败情况下累加到 counterCells 数组中的一个元素上，与 LongAdder 原理类似
      */
     public int size() {
         long n = sumCount();

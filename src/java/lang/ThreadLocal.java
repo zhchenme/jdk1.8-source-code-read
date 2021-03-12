@@ -480,6 +480,7 @@ public class ThreadLocal<T> {
             Entry[] tab = table;
             int len = tab.length;
 
+            // 以 e == null 为循环终止条件，与 IdentityHashMap 类似
             while (e != null) {
                 ThreadLocal<?> k = e.get();
                 // 找到直接返回， value

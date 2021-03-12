@@ -359,7 +359,7 @@ public class WeakHashMap<K,V>
                     Entry<K,V> e = (Entry<K,V>) x;
                 /**
                  * TODO 计算出桶位置，e 是 entry 为什么计算的不是 key 的哈希值
-                 * 原因是 WeakHashMap 的 key 是弱引用，在上一次 GC 发生时已经被回收，因此不能根据弱引用 key 计算哈希值
+                 * 原因是 e.hash = e.key.hash
                  */
                 int i = indexFor(e.hash, table.length);
 
@@ -611,7 +611,7 @@ public class WeakHashMap<K,V>
                     e.value = null; //  "   "
                     size--;
                 } else {
-                    // 计算哈希值，进行 rehash，为什么根据 entry 计算桶位置？
+                    // 计算哈希值，进行 rehash
                     int i = indexFor(e.hash, dest.length);
                     // 头插法
                     e.next = dest[i];
@@ -776,7 +776,6 @@ public class WeakHashMap<K,V>
         // Allocation of array may have caused GC, which may have caused
         // additional entries to go stale.  Removing these entries from the
         // reference queue will make them eligible for reclamation.
-        // TODO 不太懂..
         while (queue.poll() != null)
             ;
     }

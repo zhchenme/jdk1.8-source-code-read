@@ -883,7 +883,6 @@ public abstract class AbstractQueuedSynchronizer
              * to signal it, so it can safely park.
              */
             return true;
-         // 如果前驱节点已经成功获取过同步状态
         if (ws > 0) {
             /*
              * Predecessor was cancelled. Skip over predecessors and
@@ -904,6 +903,8 @@ public abstract class AbstractQueuedSynchronizer
              *
              * 新节点进来自旋，并不会在第一次自旋就进入阻塞状态，而是自旋一次后将前置节点置为 SIGNAL 状态，而当前线程对应的节点还是 0，
              * 在下一次自旋时，由于前置节点为 SIGNAL，因此当前线程节点会进入阻塞状态
+             *
+             * 因为这个方法只有在 ws == Node.SIGNAL 时才返回 true，第一次进来肯定不满足条件
              */
             compareAndSetWaitStatus(pred, ws, Node.SIGNAL);
         }

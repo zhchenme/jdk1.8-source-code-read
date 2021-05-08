@@ -1162,7 +1162,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             boolean timed = allowCoreThreadTimeOut || wc > corePoolSize;
 
             /**
-             * (wc > maximumPoolSize || (timed && timedOut)) 表示线程池内线程容量已经达到最大值或者核心线程数可以被回收且在超时时间内没有获取到任务
+             * (wc > maximumPoolSize || (timed && timedOut)) 表示线程池内线程容量已经达到最大值或者（核心线程数可以被回收或存在非核心线程）且在超时时间内没有获取到任务，因此线程被回收前一般会尝试在队列中获取且没有获取到任务
              * (wc > 1 || workQueue.isEmpty()) 表示存在工作线程，或者队列为空，此时将回收线程池内的线程
              */
             if ((wc > maximumPoolSize || (timed && timedOut)) && (wc > 1 || workQueue.isEmpty())) {
@@ -1504,6 +1504,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             // 如果线程池处于非运行状态，且尝试从队列中删除该线程成功，则执行拒绝策略
             if (! isRunning(recheck) && remove(command))
                 reject(command);
+            // 核心线程数可能设置为 0，为了保证入队的任务能被调度，需要创建空任务的非核心线程
             else if (workerCountOf(recheck) == 0)
                 addWorker(null, false);
         }

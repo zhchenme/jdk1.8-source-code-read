@@ -251,6 +251,9 @@ public class CountDownLatch {
     public void await() throws InterruptedException {
         // 检查是否中断，如果中断抛出异常
         // 调用 tryAcquireShared 方法尝试获取同步状态，当闭锁内的线程执行完毕后尝试获取成功，直接返回
+        // 如果同步状态不为 0，会入队，如果后判断流程和 ReentrantLock 类似
+        // @see java.util.concurrent.CountDownLatch.Sync.tryAcquireShared 状态为 0 返回 1，其他返回 -1
+        // 当为 -1 的时候 @see java.util.concurrent.locks.AbstractQueuedSynchronizer.doAcquireSharedInterruptibly 方法中会等待被唤醒
         sync.acquireSharedInterruptibly(1);
     }
 
@@ -313,6 +316,7 @@ public class CountDownLatch {
      * <p>If the current count equals zero then nothing happens.
      */
     public void countDown() {
+        // 每次执行都会唤醒队列中的节点(如果调用 await 方法的线程先执行)，被阻塞的线程被唤醒，判断前置节点是头结点，尝试获取锁，如果 state 状态值不为 0，仍然获取失败，继续阻塞，为 0 后被唤醒获取锁返回
         sync.releaseShared(1);
     }
 
